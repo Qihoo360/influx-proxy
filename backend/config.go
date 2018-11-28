@@ -55,7 +55,6 @@ func NewFileConfigSource(cfgfile string, node string) (fcs *FileConfigSource) {
     fcs = &FileConfigSource{
         node: node,
     }
-
     file, err := os.Open(cfgfile)
     if err != nil {
         log.Printf("file load error: %s", fcs.node)
@@ -63,7 +62,8 @@ func NewFileConfigSource(cfgfile string, node string) (fcs *FileConfigSource) {
     }
     defer file.Close()
     dec := json.NewDecoder(file)
-    err = dec.Decode(&fcs)
+    err = dec.Decode(fcs)
+
     return
 }
 

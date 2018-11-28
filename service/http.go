@@ -75,13 +75,14 @@ func (hs *HttpService) HandlerQuery(w http.ResponseWriter, req *http.Request) {
     if hs.db != "" {
         if db != hs.db {
             w.WriteHeader(404)
-            w.Write([]byte("database not exist."))
+            w.Write([]byte("database not exist.\n"))
             return
         }
     }
 
     q := strings.TrimSpace(req.FormValue("q"))
     err := hs.ic.Query(w, req)
+
     if err != nil {
         log.Printf("query error: %s,the query is %s,the client is %s\n", err, q, req.RemoteAddr)
         return

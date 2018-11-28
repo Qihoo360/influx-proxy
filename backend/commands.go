@@ -7,5 +7,5 @@ package backend
 var (
     ForbidCmds   = "(?i:^\\s*grant|^\\s*revoke|\\(\\)\\$)"
     SupportCmds  = "(?i:from|drop\\s*measurement)"
-    ExecutorCmds = "(?i:show.*measurements)"
+    ExecutorCmds = "(?i:show\\s*measurements)"
 )

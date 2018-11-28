@@ -7,6 +7,8 @@ package backend
 import (
     "bytes"
     "errors"
+    "fmt"
+    "github.com/chengshiwen/influx-proxy/monitor"
     "io"
     "log"
     "net/http"
@@ -17,8 +19,6 @@ import (
     "sync/atomic"
     "time"
     "unsafe"
-
-    "github.com/chengshiwen/influx-proxy/monitor"
 )
 
 var (
@@ -351,39 +351,104 @@ func (ic *InfluxCluster) GetBackends(key string) (backends []BackendAPI, ok bool
     return
 }
 
+
+
 func (ic *InfluxCluster) Query(w http.ResponseWriter, req *http.Request) (err error) {
     atomic.AddInt64(&ic.stats.QueryRequests, 1)
     defer func(start time.Time) {
         atomic.AddInt64(&ic.stats.QueryRequestDuration, time.Since(start).Nanoseconds())
     }(time.Now())
 
+    fmt.Println("in Query") // debug log
+
     switch req.Method {
     case "GET", "POST":
     default:
         w.WriteHeader(400)
-        w.Write([]byte("illegal method"))
+        w.Write([]byte("illegal method\n"))
         atomic.AddInt64(&ic.stats.QueryRequestsFail, 1)
         return
     }
 
-    // TODO: all query in q?
+    // TODO: several queries split by ';'
     q := strings.TrimSpace(req.FormValue("q"))
     if q == "" {
         w.WriteHeader(400)
-        w.Write([]byte("empty query"))
+        w.Write([]byte("empty query\n"))
         atomic.AddInt64(&ic.stats.QueryRequestsFail, 1)
         return
     }
 
+    fmt.Println(q) // debug log
+
     err = ic.query_executor.Query(w, req)
     if err == nil {
+        fmt.Println("here to do SHOW MEASUREMENTS") // debug log
+
+        var s_header http.Header
+        var s_body []byte
+        var s_status int
+        var s_ms [][]string
+        occur := make(map[string]bool)
+        values := make([][]string, 0)
+
+        for _, v := range ic.m2bs {
+            for _, api := range v {
+                if api.GetZone() != ic.Zone {
+                    continue
+                }
+                if (!api.IsActive() || api.IsWriteOnly()) {
+                    continue
+                }
+                fmt.Println("start one")
+                s_header, s_status, s_body , err = api.JustQuery(req)
+                fmt.Println("finish_one")
+
+                if err != nil {
+                    w.WriteHeader(400)
+                    w.Write([]byte("query error\n"))
+                    return
+                }
+                s_ms, err = GetMeasurementsArray(s_body)
+
+                if err != nil {
+                    w.WriteHeader(400)
+                    w.Write([]byte("query error\n"))
+                    return
+                }
+
+                for _, s := range s_ms {
+                    fmt.Println(s)
+                    if strings.Contains(s[0], "influxdb.cluster") {
+                        continue
+                    }
+                    if !occur[s[0]] {
+                        values = append(values, s)
+                        occur[s[0]] = true
+                    }
+                }
+                break
+            }
+        }
+
+        var f_body []byte
+        f_body ,err = GetJsonBody(values)
+
+        if err != nil {
+            w.WriteHeader(400)
+            w.Write([]byte("query error\n"))
+            return
+        }
+        copyHeader(w.Header(), s_header)
+        w.WriteHeader(s_status)
+        w.Write(f_body)
         return
     }
 
     err = ic.CheckQuery(q)
     if err != nil {
         w.WriteHeader(400)
-        w.Write([]byte("query forbidden"))
+        w.Write([]byte("query forbidden\n"))
         atomic.AddInt64(&ic.stats.QueryRequestsFail, 1)
         return
     }
@@ -392,7 +457,7 @@ func (ic *InfluxCluster) Query(w http.ResponseWriter, req *http.Request) (err er
     if err != nil {
         log.Printf("can't get measurement: %s\n", q)
         w.WriteHeader(400)
-        w.Write([]byte("can't get measurement"))
+        w.Write([]byte("can't get measurement\n"))
         atomic.AddInt64(&ic.stats.QueryRequestsFail, 1)
         return
     }
@@ -401,7 +466,7 @@ func (ic *InfluxCluster) Query(w http.ResponseWriter, req *http.Request) (err er
     if !ok {
         log.Printf("unknown measurement: %s,the query is %s\n", key, q)
         w.WriteHeader(400)
-        w.Write([]byte("unknown measurement"))
+        w.Write([]byte("unknown measurement\n"))
         atomic.AddInt64(&ic.stats.QueryRequestsFail, 1)
         return
     }
@@ -422,21 +487,8 @@ func (ic *InfluxCluster) Query(w http.ResponseWriter, req *http.Request) (err er
         }
     }
 
-    for _, api := range apis {
-        if api.GetZone() == ic.Zone {
-            continue
-        }
-        if !api.IsActive() {
-            continue
-        }
-        err = api.Query(w, req)
-        if err == nil {
-            return
-        }
-    }
-
     w.WriteHeader(400)
-    w.Write([]byte("query error"))
+    w.Write([]byte("query error\n"))
     atomic.AddInt64(&ic.stats.QueryRequestsFail, 1)
     return
 }
