@@ -6,6 +6,7 @@ package main
 
 import (
     "compress/gzip"
+    "fmt"
     "io/ioutil"
     "log"
     "net/http"
@@ -103,9 +104,9 @@ func (hs *HttpService) HandlerWrite(w http.ResponseWriter, req *http.Request) {
         w.Write([]byte("method not allow."))
         return
     }
-
+    fmt.Println(req.Method)
     db := req.URL.Query().Get("db")
-
+    fmt.Println(req.URL)
     if hs.db != "" {
         if db != hs.db {
             w.WriteHeader(404)
@@ -115,6 +116,7 @@ func (hs *HttpService) HandlerWrite(w http.ResponseWriter, req *http.Request) {
     }
 
     body := req.Body
+    fmt.Println(req.Header.Get("Content-Encoding"))
     if req.Header.Get("Content-Encoding") == "gzip" {
         b, err := gzip.NewReader(req.Body)
         if err != nil {
@@ -127,6 +129,7 @@ func (hs *HttpService) HandlerWrite(w http.ResponseWriter, req *http.Request) {
     }
 
     p, err := ioutil.ReadAll(body)
+    fmt.Println(string(p))
     if err != nil {
         w.WriteHeader(400)
         w.Write([]byte(err.Error()))

@@ -386,13 +386,14 @@ func (ic *InfluxCluster) Query(w http.ResponseWriter, req *http.Request) (err er
         fmt.Println("here to do SHOW MEASUREMENTS") // debug log
 
         var s_header http.Header
-        var s_body []byte
-        var s_status int
-        var s_ms [][]string
         occur := make(map[string]bool)
         values := make([][]string, 0)
 
         for _, v := range ic.m2bs {
+
+            need := false
+            actu := false
+
             for _, api := range v {
                 if api.GetZone() != ic.Zone {
                     continue
@@ -400,21 +401,23 @@ func (ic *InfluxCluster) Query(w http.ResponseWriter, req *http.Request) (err er
                 if (!api.IsActive() || api.IsWriteOnly()) {
                     continue
                 }
+                need = true
 
-                s_header, s_status, s_body , err = api.JustQuery(req)
+                _header, _, s_body, _err := api.JustQuery(req)
 
-                if err != nil {
-                    w.WriteHeader(400)
-                    w.Write([]byte("query error\n"))
-                    return
+                if _err != nil {
+                    err = _err
+                    continue
                 }
-                s_ms, err = GetMeasurementsArray(s_body)
 
-                if err != nil {
-                    w.WriteHeader(400)
-                    w.Write([]byte("query error\n"))
-                    return
+                s_ms, _err := GetMeasurementsArray(s_body)
+
+                if _err != nil {
+                    err = _err
+                    continue
                 }
+
+                s_header = _header
 
                 for _, s := range s_ms {
                     fmt.Println(s)
@@ -426,20 +429,29 @@ func (ic *InfluxCluster) Query(w http.ResponseWriter, req *http.Request) (err er
                         occur[s[0]] = true
                     }
                 }
+
+                actu = true
                 break
+            }
+
+            if need && !actu {
+                w.WriteHeader(400)
+                w.Write([]byte("query error\n"))
+                return
             }
         }
 
-        var f_body []byte
-        f_body ,err = GetJsonBody(values)
 
-        if err != nil {
+        f_body ,_err := GetJsonBody(values)
+
+        if _err != nil {
+            err = _err
             w.WriteHeader(400)
             w.Write([]byte("query error\n"))
             return
         }
         copyHeader(w.Header(), s_header)
-        w.WriteHeader(s_status)
+        w.WriteHeader(200)
         w.Write(f_body)
         return
     }

@@ -2,7 +2,8 @@ package backend
 
 import (
 	"encoding/json"
-	"fmt"
+
+	"log"
 )
 
 /*
@@ -27,7 +28,9 @@ type statement_array struct {
 
 func GetMeasurementsArray(s_body []byte) (ms [][]string, err error) {
 	var tmp statement_array
-	fmt.Println(string(s_body))
+	log.Println("*******************************************")
+	log.Println(string(s_body))
+	log.Println("*******************************************")
 	err = json.Unmarshal(s_body, &tmp)
 	ms = tmp.Results[0].Series[0].Values
 	return

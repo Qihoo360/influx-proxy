@@ -8,6 +8,7 @@ import (
     "bytes"
     "compress/gzip"
     "errors"
+    "fmt"
     "io"
     "io/ioutil"
     "log"
@@ -143,9 +144,9 @@ func (hb *HttpBackend) JustQuery(req *http.Request) (header http.Header, status 
     }
 
     q := strings.TrimSpace(req.FormValue("q"))
-    tmpreq, err := http.NewRequest(http.MethodGet, req.URL.String(), nil)
-    resp, err := hb.transport.RoundTrip(tmpreq)
-
+    //tmpreq, err := http.NewRequest(req.Method, req.URL.String(), req.Body)
+    resp, err := hb.transport.RoundTrip(req)
+    fmt.Println(&resp)
     if err != nil {
         log.Printf("query error: %s,the query is %s\n", err, q)
         hb.Active = false
