@@ -154,7 +154,21 @@ func (hb *HttpBackend) JustQuery(req *http.Request) (header http.Header, status 
     }
     defer resp.Body.Close()
 
-    p, err := ioutil.ReadAll(resp.Body)
+    _body := resp.Body
+    fmt.Println("Header:\t" + resp.Header.Get("Content-Encoding"))
+    if resp.Header.Get("Content-Encoding") == "gzip" {
+        b, _err := gzip.NewReader(_body)
+        if _err != nil {
+            log.Printf("unable to decode gzip body")
+            err = _err
+            return
+        }
+        defer b.Close()
+        _body = b
+    }
+
+
+    p, err := ioutil.ReadAll(_body)
     if err != nil {
         log.Printf("read body error: %s,the query is %s\n", err, q)
         return

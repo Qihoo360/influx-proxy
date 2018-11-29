@@ -452,7 +452,8 @@ func (ic *InfluxCluster) Query(w http.ResponseWriter, req *http.Request) (err er
         }
         copyHeader(w.Header(), s_header)
         w.WriteHeader(200)
-        w.Write(f_body)
+        //w.Write(f_body)
+        w.Write(GzipEncode(f_body, s_header.Get("Content-Encoding") == "gzip"))
         return
     }
 

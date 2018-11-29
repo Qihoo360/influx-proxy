@@ -72,6 +72,8 @@ func (hs *HttpService) HandlerQuery(w http.ResponseWriter, req *http.Request) {
     defer req.Body.Close()
     w.Header().Add("X-Influxdb-Version", backend.VERSION)
 
+
+
     db := req.FormValue("db")
     if hs.db != "" {
         if db != hs.db {
@@ -98,15 +100,14 @@ func (hs *HttpService) HandlerQuery(w http.ResponseWriter, req *http.Request) {
 func (hs *HttpService) HandlerWrite(w http.ResponseWriter, req *http.Request) {
     defer req.Body.Close()
     w.Header().Add("X-Influxdb-Version", backend.VERSION)
-
+    fmt.Println("Method:\t"+req.Method)
     if req.Method != "POST" {
         w.WriteHeader(405)
         w.Write([]byte("method not allow."))
         return
     }
-    fmt.Println(req.Method)
     db := req.URL.Query().Get("db")
-    fmt.Println(req.URL)
+    fmt.Println("URL:\t"+req.URL.String())
     if hs.db != "" {
         if db != hs.db {
             w.WriteHeader(404)
@@ -116,7 +117,7 @@ func (hs *HttpService) HandlerWrite(w http.ResponseWriter, req *http.Request) {
     }
 
     body := req.Body
-    fmt.Println(req.Header.Get("Content-Encoding"))
+    fmt.Println("Header:\t" + req.Header.Get("Content-Encoding"))
     if req.Header.Get("Content-Encoding") == "gzip" {
         b, err := gzip.NewReader(req.Body)
         if err != nil {

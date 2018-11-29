@@ -1,8 +1,10 @@
 package backend
 
 import (
+	"bytes"
+	"compress/gzip"
 	"encoding/json"
-
+	"fmt"
 	"log"
 )
 
@@ -27,12 +29,19 @@ type statement_array struct {
 }
 
 func GetMeasurementsArray(s_body []byte) (ms [][]string, err error) {
+
+
+
 	var tmp statement_array
-	log.Println("*******************************************")
-	log.Println(string(s_body))
-	log.Println("*******************************************")
 	err = json.Unmarshal(s_body, &tmp)
-	ms = tmp.Results[0].Series[0].Values
+	if err == nil {
+		ms = tmp.Results[0].Series[0].Values
+	} else {
+		log.Println(err)
+		log.Println("*******************************************")
+		log.Println(s_body)
+		log.Println("*******************************************")
+	}
 	return
 }
 
@@ -52,5 +61,20 @@ func GetJsonBody(values [][]string) (body []byte, err error) {
 	})
 	body = append(body, '\n')
 
+	return
+}
+
+func GzipEncode(body []byte, need bool) (b []byte) {
+	if !need {
+		b = body
+	} else {
+		var buf bytes.Buffer
+		w := gzip.NewWriter(&buf)
+		w.Write(body)
+		defer w.Close()
+		w.Flush()
+		b = buf.Bytes()
+		fmt.Println(b)
+	}
 	return
 }
