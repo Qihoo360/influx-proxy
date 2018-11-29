@@ -400,9 +400,8 @@ func (ic *InfluxCluster) Query(w http.ResponseWriter, req *http.Request) (err er
                 if (!api.IsActive() || api.IsWriteOnly()) {
                     continue
                 }
-                fmt.Println("start one")
+
                 s_header, s_status, s_body , err = api.JustQuery(req)
-                fmt.Println("finish_one")
 
                 if err != nil {
                     w.WriteHeader(400)

@@ -11,18 +11,18 @@ import (
  */
 
 type seri struct {
-	Name string
-	Columns []string
-	Values [][]string
+	Name string `json:"name"`
+	Columns []string `json:"columns"`
+	Values [][]string `json:"values"`
 }
 
 type statement struct {
-	Statement_id int
-	Series []seri
+	Statement_id int `json:"statement_id"`
+	Series []seri `json:"series"`
 }
 
 type statement_array struct {
-	Results []statement
+	Results []statement `json:"results"`
 }
 
 func GetMeasurementsArray(s_body []byte) (ms [][]string, err error) {
