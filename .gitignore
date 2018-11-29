@@ -4,3 +4,4 @@ testbk*
 *.dat
 *.rec
 bin/*
+.DS_Store
