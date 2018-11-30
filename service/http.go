@@ -107,6 +107,10 @@ func (hs *HttpService) HandlerWrite(w http.ResponseWriter, req *http.Request) {
         return
     }
     db := req.URL.Query().Get("db")
+    precision := req.URL.Query().Get("precision")
+    if precision == "" {
+        precision = "ns"
+    }
     fmt.Println("URL:\t"+req.URL.String())
     if hs.db != "" {
         if db != hs.db {
