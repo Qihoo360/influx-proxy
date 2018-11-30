@@ -57,7 +57,30 @@ func (ic *InfluxCluster) ShowQuery(w http.ResponseWriter, req *http.Request) (er
 	q := strings.TrimSpace(req.FormValue("q"))
 	if strings.Contains(q, "field") || strings.Contains(q, "tag") {
 		// TODO: combine series
+		occur := make(map[string]bool, 0)
+		series := make([]seri, 0)
 
+		for _, s_body := range bodys {
+			s_ss, _err := GetSerisArray(s_body)
+			if _err != nil {
+				err = _err
+				return
+			}
+			for _, s := range s_ss {
+				if strings.Contains(s.Name, "influxdb.cluster") {
+					continue
+				}
+				if !occur[s.Name] {
+					series = append(series, s)
+					occur[s.Name] = true
+				}
+			}
+		}
+
+		f_body, err = GetJsonBodyfromSeries(series)
+		if err != nil {
+			return
+		}
 	} else {
 		name := ""
 		columns := []string{"key"}

@@ -5,7 +5,6 @@ import (
 	"compress/gzip"
 	"encoding/json"
 	"fmt"
-	"log"
 )
 
 /*
@@ -21,11 +20,34 @@ type seri struct {
 
 type statement struct {
 	Statement_id int `json:"statement_id"`
-	Series []seri `json:"series"`
+	Series []seri `json:"series,omitempty"`
 }
 
 type statement_array struct {
 	Results []statement `json:"results"`
+}
+
+func fmtlog(title []byte, content []byte, err error) {
+	fmt.Println(string(title) + ":")
+	fmt.Println("\terr:" +err.Error())
+	fmt.Println("\tcontent:"+string(content))
+}
+
+func GetSerisArray(s_body []byte) (ss []seri, err error) {
+	var tmp statement_array
+	err = json.Unmarshal(s_body, &tmp)
+	if err == nil {
+		if len(tmp.Results) > 0 {
+			if len(tmp.Results[0].Series) > 0 {
+				ss = tmp.Results[0].Series
+				return
+			}
+		}
+		ss = make([]seri, 0)
+		return
+	}
+	fmtlog([]byte("json unmarshal"), s_body, err)
+	return
 }
 
 func GetValuesArray(s_body []byte) (ms [][]string, err error) {
@@ -41,12 +63,21 @@ func GetValuesArray(s_body []byte) (ms [][]string, err error) {
 		ms = make([][]string, 0)
 		return
 	}
-		//ms = tmp.Results[0].Series[0].Values
+	fmtlog([]byte("json unmarshal"), s_body, err)
+	return
+}
 
-	log.Println(err)
-	log.Println("*******************************************")
-	log.Println(string(s_body))
-	log.Println("*******************************************")
+func GetJsonBodyfromSeries(series []seri) (body []byte, err error){
+	tmpstatement := statement {
+		Statement_id: 0,
+		Series: series,
+	}
+	body, err = json.Marshal(statement_array{
+		Results: []statement{tmpstatement},
+	})
+	if err == nil {
+		body = append(body, '\n')
+	}
 	return
 }
 
@@ -63,7 +94,9 @@ func GetJsonBodyfromValues(name string, columns []string, values [][]string) (bo
 	body, err = json.Marshal(statement_array{
 		Results: []statement{tmpstatement},
 	})
-	body = append(body, '\n')
+	if err == nil {
+		body = append(body, '\n')
+	}
 	return
 }
 
@@ -77,7 +110,6 @@ func GzipEncode(body []byte, need bool) (b []byte) {
 		defer w.Close()
 		w.Flush()
 		b = buf.Bytes()
-		fmt.Println(b)
 	}
 	return
 }
