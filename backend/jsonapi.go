@@ -5,62 +5,98 @@ import (
 	"compress/gzip"
 	"encoding/json"
 	"fmt"
-	"log"
 )
 
 /*
 	for the extension, json api is needed.
-	todo fix string
+	TODO: fix string
  */
 
 type seri struct {
-	Name string `json:"name"`
+	Name string `json:"name,omitempty"`
 	Columns []string `json:"columns"`
 	Values [][]string `json:"values"`
 }
 
 type statement struct {
 	Statement_id int `json:"statement_id"`
-	Series []seri `json:"series"`
+	Series []seri `json:"series,omitempty"`
 }
 
 type statement_array struct {
 	Results []statement `json:"results"`
 }
 
-func GetMeasurementsArray(s_body []byte) (ms [][]string, err error) {
+func fmtlog(title []byte, content []byte, err error) {
+	fmt.Println(string(title) + ":")
+	fmt.Println("\terr:" +err.Error())
+	fmt.Println("\tcontent:"+string(content))
+}
 
-
-
+func GetSerisArray(s_body []byte) (ss []seri, err error) {
 	var tmp statement_array
 	err = json.Unmarshal(s_body, &tmp)
 	if err == nil {
-		ms = tmp.Results[0].Series[0].Values
-	} else {
-		log.Println(err)
-		log.Println("*******************************************")
-		log.Println(s_body)
-		log.Println("*******************************************")
+		if len(tmp.Results) > 0 {
+			if len(tmp.Results[0].Series) > 0 {
+				ss = tmp.Results[0].Series
+				return
+			}
+		}
+		ss = make([]seri, 0)
+		return
+	}
+	fmtlog([]byte("json unmarshal"), s_body, err)
+	return
+}
+
+func GetValuesArray(s_body []byte) (ms [][]string, err error) {
+	var tmp statement_array
+	err = json.Unmarshal(s_body, &tmp)
+	if err == nil {
+		if len(tmp.Results) > 0 {
+			if len(tmp.Results[0].Series) > 0 {
+				ms = tmp.Results[0].Series[0].Values
+				return
+			}
+		}
+		ms = make([][]string, 0)
+		return
+	}
+	fmtlog([]byte("json unmarshal"), s_body, err)
+	return
+}
+
+func GetJsonBodyfromSeries(series []seri) (body []byte, err error){
+	tmpstatement := statement {
+		Statement_id: 0,
+		Series: series,
+	}
+	body, err = json.Marshal(statement_array{
+		Results: []statement{tmpstatement},
+	})
+	if err == nil {
+		body = append(body, '\n')
 	}
 	return
 }
 
-func GetJsonBody(values [][]string) (body []byte, err error) {
+func GetJsonBodyfromValues(name string, columns []string, values [][]string) (body []byte, err error) {
 	tmpseri := seri {
-		Name: 	"measurements",
-		Columns: 	[]string{"name"},
+		Name: 	name,
+		Columns: 	columns,
 		Values:	values,
 	}
 	tmpstatement := statement{
 		Statement_id: 0,
 		Series: []seri{tmpseri},
 	}
-
 	body, err = json.Marshal(statement_array{
 		Results: []statement{tmpstatement},
 	})
-	body = append(body, '\n')
-
+	if err == nil {
+		body = append(body, '\n')
+	}
 	return
 }
 
@@ -74,7 +110,6 @@ func GzipEncode(body []byte, need bool) (b []byte) {
 		defer w.Close()
 		w.Flush()
 		b = buf.Bytes()
-		fmt.Println(b)
 	}
 	return
 }
