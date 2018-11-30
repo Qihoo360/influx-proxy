@@ -379,81 +379,16 @@ func (ic *InfluxCluster) Query(w http.ResponseWriter, req *http.Request) (err er
         return
     }
 
-    fmt.Println(q) // debug log
-
     err = ic.query_executor.Query(w, req)
+    fmt.Println(q) // debug log
     if err == nil {
-        fmt.Println("here to do SHOW MEASUREMENTS") // debug log
-
-        var s_header http.Header
-        occur := make(map[string]bool)
-        values := make([][]string, 0)
-
-        for _, v := range ic.m2bs {
-
-            need := false
-            actu := false
-
-            for _, api := range v {
-                if api.GetZone() != ic.Zone {
-                    continue
-                }
-                if (!api.IsActive() || api.IsWriteOnly()) {
-                    continue
-                }
-                need = true
-
-                _header, _, s_body, _err := api.JustQuery(req)
-
-                if _err != nil {
-                    err = _err
-                    continue
-                }
-
-                s_ms, _err := GetMeasurementsArray(s_body)
-
-                if _err != nil {
-                    err = _err
-                    continue
-                }
-
-                s_header = _header
-
-                for _, s := range s_ms {
-                    fmt.Println(s)
-                    if strings.Contains(s[0], "influxdb.cluster") {
-                        continue
-                    }
-                    if !occur[s[0]] {
-                        values = append(values, s)
-                        occur[s[0]] = true
-                    }
-                }
-
-                actu = true
-                break
-            }
-
-            if need && !actu {
-                w.WriteHeader(400)
-                w.Write([]byte("query error\n"))
-                return
-            }
-        }
-
-
-        f_body ,_err := GetJsonBody(values)
-
-        if _err != nil {
-            err = _err
+        err = ic.ShowQuery(w, req)
+        if err != nil {
             w.WriteHeader(400)
             w.Write([]byte("query error\n"))
+            atomic.AddInt64(&ic.stats.QueryRequestsFail, 1)
             return
         }
-        copyHeader(w.Header(), s_header)
-        w.WriteHeader(200)
-        //w.Write(f_body)
-        w.Write(GzipEncode(f_body, s_header.Get("Content-Encoding") == "gzip"))
         return
     }
 
