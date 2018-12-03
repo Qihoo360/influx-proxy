@@ -12,7 +12,7 @@ import (
 func TestCache(t *testing.T) {
     cfg, ts := CreateTestBackendConfig("test")
     defer ts.Close()
-    bs, err := NewBackends(cfg, "test")
+    bs, err := NewBackends(cfg, "test", ".")
     if err != nil {
         t.Errorf("error: %s", err)
         return
@@ -38,7 +38,7 @@ func TestCache(t *testing.T) {
 func TestRewrite(t *testing.T) {
     cfg, ts := CreateTestBackendConfig("test")
     defer ts.Close()
-    bs, err := NewBackends(cfg, "test")
+    bs, err := NewBackends(cfg, "test", ".")
     if err != nil {
         t.Errorf("error: %s", err)
         return

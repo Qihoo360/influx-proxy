@@ -7,6 +7,7 @@ package main
 import (
     "errors"
     "flag"
+    "fmt"
     "log"
     "net/http"
     "os"
@@ -22,6 +23,7 @@ var (
     ConfigFile  string
     NodeName    string
     LogPath     string
+    StoreDir    string
 )
 
 func init() {
@@ -30,6 +32,7 @@ func init() {
     flag.StringVar(&ConfigFile, "config", "proxy.json", "proxy config file")
     flag.StringVar(&NodeName, "node", "l1", "node name")
     flag.StringVar(&LogPath, "log-path", "influx-proxy.log", "log file path")
+    flag.StringVar(&StoreDir, "data-dir", ".", "dir to store .dat .rec")
     flag.Parse()
 }
 
@@ -46,8 +49,33 @@ func initLog() {
     }
 }
 
+func PathExists(path string) (bool, error) {
+    _, err := os.Stat(path)
+    if err == nil {
+        return true, nil
+    }
+    if os.IsNotExist(err) {
+        return false, nil
+    }
+    return false, err
+}
+
 func main() {
     initLog()
+    fmt.Println(StoreDir)
+    exist, _err := PathExists(StoreDir)
+    if _err != nil {
+        log.Println("check dir error!")
+        return
+    }
+    fmt.Println(exist)
+    if !exist {
+        _err := os.MkdirAll(StoreDir, os.ModePerm)
+        if _err != nil {
+            log.Println("create dir error!")
+            return
+        }
+    }
 
     var err error
 
@@ -59,7 +87,7 @@ func main() {
         return
     }
 
-    ic := backend.NewInfluxCluster(fcs, &nodecfg)
+    ic := backend.NewInfluxCluster(fcs, &nodecfg, StoreDir)
     ic.LoadConfig()
 
     mux := http.NewServeMux()

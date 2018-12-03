@@ -34,7 +34,7 @@ type Backends struct {
 }
 
 // maybe ch_timer is not the best way.
-func NewBackends(cfg *BackendConfig, name string) (bs *Backends, err error) {
+func NewBackends(cfg *BackendConfig, name string, storedir string) (bs *Backends, err error) {
     bs = &Backends{
         HttpBackend: NewHttpBackend(cfg),
         // FIXME: path...
@@ -47,7 +47,7 @@ func NewBackends(cfg *BackendConfig, name string) (bs *Backends, err error) {
         rewriter_running: false,
         MaxRowLimit:      int32(cfg.MaxRowLimit),
     }
-    bs.fb, err = NewFileBackend(name)
+    bs.fb, err = NewFileBackend(name, storedir)
     if err != nil {
         return
     }
