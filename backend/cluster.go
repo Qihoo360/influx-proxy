@@ -14,6 +14,7 @@ import (
     "net/http"
     "os"
     "regexp"
+    "strconv"
     "strings"
     "sync"
     "sync/atomic"
@@ -182,7 +183,7 @@ func (ic *InfluxCluster) WriteStatistics() (err error) {
     if err != nil {
         return
     }
-    return ic.Write([]byte(line + "\n"))
+    return ic.Write([]byte(line + "\n"), "ns")
 }
 
 func (ic *InfluxCluster) ForbidQuery(s string) (err error) {
@@ -440,9 +441,29 @@ func (ic *InfluxCluster) Query(w http.ResponseWriter, req *http.Request) (err er
     return
 }
 
+func Int64ToBytes(i int64) []byte {
+    return []byte( strconv.FormatInt(i, 10))
+}
+func BytesToInt64(buf []byte) int64 {
+    var ans int64 = 0
+    var length = len(buf)
+    for i := 0; i < length; i++ {
+        ans = ans * 10 + int64(buf[i] - '0')
+    }
+    return ans
+}
+func allnumber(buf []byte) bool {
+    for _, a := range buf {
+        if a < '0' || a > '9' {
+            return false
+        }
+    }
+    return true
+}
+
 // Wrong in one row will not stop others.
 // So don't try to return error, just print it.
-func (ic *InfluxCluster) WriteRow(line []byte) {
+func (ic *InfluxCluster) WriteRow(line []byte, precision string) {
     atomic.AddInt64(&ic.stats.PointsWritten, 1)
     // maybe trim?
     line = bytes.TrimRight(line, " \t\r\n")
@@ -467,6 +488,53 @@ func (ic *InfluxCluster) WriteRow(line []byte) {
         return
     }
 
+    lines := bytes.Split(line, []byte(" "))
+    length := len(lines)
+    buf := bytes.Buffer{}
+    if !allnumber(lines[length-1]) {
+        buf.Write(line)
+        buf.Write([]byte(" "))
+        nano := time.Duration(time.Now().UnixNano())
+        switch precision {
+        case "us":
+            nano = nano / time.Microsecond * time.Microsecond
+        case "ms":
+            nano = nano / time.Millisecond * time.Millisecond
+        case "s":
+            nano = nano / time.Second * time.Second
+        case "m":
+            nano = nano / time.Minute * time.Minute
+        case "h":
+            nano = nano / time.Hour * time.Hour
+        default:
+        }
+        buf.Write(Int64ToBytes(nano.Nanoseconds()))
+    } else {
+
+        nano := time.Duration(BytesToInt64(lines[length-1]))
+        switch precision{
+        case "us":
+            nano = nano * time.Microsecond
+        case "ms":
+            nano = nano * time.Millisecond
+        case "s":
+            nano = nano * time.Second
+        case "m":
+            nano = nano * time.Minute
+        case "h":
+            nano = nano * time.Hour
+        default:
+        }
+        for i, j := range lines{
+            if i < length - 1{
+                buf.Write(j)
+                buf.Write([]byte(" "))
+            }
+        }
+        buf.Write(Int64ToBytes(nano.Nanoseconds()))
+    }
+    line = buf.Bytes()
+    fmt.Println(string(line))
     // don't block here for a lont time, we just have one worker.
     for _, b := range bs {
         err = b.Write(line)
@@ -479,7 +547,7 @@ func (ic *InfluxCluster) WriteRow(line []byte) {
     return
 }
 
-func (ic *InfluxCluster) Write(p []byte) (err error) {
+func (ic *InfluxCluster) Write(p []byte, precision string) (err error) {
     atomic.AddInt64(&ic.stats.WriteRequests, 1)
     defer func(start time.Time) {
         atomic.AddInt64(&ic.stats.WriteRequestDuration, time.Since(start).Nanoseconds())
@@ -503,9 +571,10 @@ func (ic *InfluxCluster) Write(p []byte) (err error) {
             break
         }
 
-        ic.WriteRow(line)
+        ic.WriteRow(line, precision)
     }
 
+    /*
     ic.lock.RLock()
     defer ic.lock.RUnlock()
     if len(ic.bas) > 0 {
@@ -517,7 +586,7 @@ func (ic *InfluxCluster) Write(p []byte) (err error) {
             }
         }
     }
-
+    */
     return
 }
 

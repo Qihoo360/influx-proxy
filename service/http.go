@@ -141,7 +141,7 @@ func (hs *HttpService) HandlerWrite(w http.ResponseWriter, req *http.Request) {
         return
     }
 
-    err = hs.ic.Write(p)
+    err = hs.ic.Write(p, precision)
     if err == nil {
         w.WriteHeader(204)
     }
