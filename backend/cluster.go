@@ -80,6 +80,8 @@ type InfluxCluster struct {
     defaultTags    map[string]string
     WriteTracing   int
     QueryTracing   int
+
+    storedir       string
 }
 
 type Statistics struct {
@@ -95,7 +97,7 @@ type Statistics struct {
     QueryRequestDuration int64
 }
 
-func NewInfluxCluster(cfgsrc *FileConfigSource, nodecfg *NodeConfig) (ic *InfluxCluster) {
+func NewInfluxCluster(cfgsrc *FileConfigSource, nodecfg *NodeConfig, storedir string) (ic *InfluxCluster) {
     ic = &InfluxCluster{
         Zone:           nodecfg.Zone,
         nexts:          nodecfg.Nexts,
@@ -108,6 +110,7 @@ func NewInfluxCluster(cfgsrc *FileConfigSource, nodecfg *NodeConfig) (ic *Influx
         defaultTags:    map[string]string{"addr": nodecfg.ListenAddr},
         WriteTracing:   nodecfg.WriteTracing,
         QueryTracing:   nodecfg.QueryTracing,
+        storedir:       storedir,
     }
     host, err := os.Hostname()
     if err != nil {
@@ -226,7 +229,7 @@ func (ic *InfluxCluster) loadBackends() (backends map[string]BackendAPI, bas []B
     }
 
     for name, cfg := range bkcfgs {
-        backends[name], err = NewBackends(cfg, name)
+        backends[name], err = NewBackends(cfg, name, ic.storedir)
         if err != nil {
             log.Printf("create backend error: %s", err)
             return
