@@ -5,106 +5,102 @@
 package main
 
 import (
-    "errors"
-    "flag"
-    "fmt"
-    "log"
-    "net/http"
-    "os"
-    "time"
+	"errors"
+	"flag"
+	"log"
+	"net/http"
+	"os"
+	"time"
 
-    "gopkg.in/natefinch/lumberjack.v2"
+	"gopkg.in/natefinch/lumberjack.v2"
 
-    "github.com/chengshiwen/influx-proxy/backend"
+	"github.com/chengshiwen/influx-proxy/backend"
 )
 
 var (
-    ErrConfig   = errors.New("config parse error")
-    ConfigFile  string
-    NodeName    string
-    LogPath     string
-    StoreDir    string
+	ErrConfig  = errors.New("config parse error")
+	ConfigFile string
+	NodeName   string
+	LogPath    string
+	StoreDir   string
 )
 
 func init() {
-    log.SetFlags(log.LstdFlags | log.Lmicroseconds | log.Lshortfile)
+	log.SetFlags(log.LstdFlags | log.Lmicroseconds | log.Lshortfile)
 
-    flag.StringVar(&ConfigFile, "config", "proxy.json", "proxy config file")
-    flag.StringVar(&NodeName, "node", "l1", "node name")
-    flag.StringVar(&LogPath, "log-path", "influx-proxy.log", "log file path")
-    flag.StringVar(&StoreDir, "data-dir", ".", "dir to store .dat .rec")
-    flag.Parse()
+	flag.StringVar(&ConfigFile, "config", "proxy.json", "proxy config file")
+	flag.StringVar(&NodeName, "node", "l1", "node name")
+	flag.StringVar(&LogPath, "log-path", "bin/influx-proxy.log", "log file path")
+	flag.StringVar(&StoreDir, "data-dir", "bin/place", "dir to store .dat .rec")
+	flag.Parse()
 }
 
+// initLog log初始化
 func initLog() {
-    if LogPath == "" {
-        log.SetOutput(os.Stdout)
-    } else {
-        log.SetOutput(&lumberjack.Logger{
-            Filename:   LogPath,
-            MaxSize:    100,
-            MaxBackups: 5,
-            MaxAge:     7,
-        })
-    }
+	if LogPath == "" {
+		log.SetOutput(os.Stdout)
+	} else {
+		log.SetOutput(&lumberjack.Logger{
+			Filename:   LogPath,
+			MaxSize:    100,
+			MaxBackups: 5,
+			MaxAge:     7,
+		})
+	}
 }
 
+// PathExists 检查目录是否存在
 func PathExists(path string) (bool, error) {
-    _, err := os.Stat(path)
-    if err == nil {
-        return true, nil
-    }
-    if os.IsNotExist(err) {
-        return false, nil
-    }
-    return false, err
+	_, err := os.Stat(path)
+	if err == nil {
+		return true, nil
+	}
+	if os.IsNotExist(err) {
+		return false, nil
+	}
+	return false, err
 }
 
 func main() {
-    initLog()
-    fmt.Println(StoreDir)
-    exist, _err := PathExists(StoreDir)
-    if _err != nil {
-        log.Println("check dir error!")
-        return
-    }
-    fmt.Println(exist)
-    if !exist {
-        _err := os.MkdirAll(StoreDir, os.ModePerm)
-        if _err != nil {
-            log.Println("create dir error!")
-            return
-        }
-    }
+	initLog()
+	exist, err := PathExists(StoreDir)
+	if err != nil {
+		log.Println("check dir error!")
+		return
+	}
+	if !exist {
+		err = os.MkdirAll(StoreDir, os.ModePerm)
+		if err != nil {
+			log.Println("create dir error!")
+			return
+		}
+	}
 
-    var err error
+	fcs := backend.NewFileConfigSource(ConfigFile, NodeName)
+	var nodecfg backend.NodeConfig
+	nodecfg, err = fcs.LoadNode()
+	if err != nil {
+		log.Printf("config source load failed.")
+		return
+	}
 
-    fcs := backend.NewFileConfigSource(ConfigFile, NodeName)
+	ic := backend.NewInfluxCluster(fcs, &nodecfg, StoreDir)
+	ic.LoadConfig()
 
-    nodecfg, err := fcs.LoadNode()
-    if err != nil {
-        log.Printf("config source load failed.")
-        return
-    }
+	mux := http.NewServeMux()
+	NewHttpService(ic, nodecfg.DB).Register(mux)
+	log.Printf("http service start.")
+	server := &http.Server{
+		Addr:        nodecfg.ListenAddr,
+		Handler:     mux,
+		IdleTimeout: time.Duration(nodecfg.IdleTimeout) * time.Second,
+	}
 
-    ic := backend.NewInfluxCluster(fcs, &nodecfg, StoreDir)
-    ic.LoadConfig()
-
-    mux := http.NewServeMux()
-    NewHttpService(ic, nodecfg.DB).Register(mux)
-
-    log.Printf("http service start.")
-    server := &http.Server{
-        Addr:        nodecfg.ListenAddr,
-        Handler:     mux,
-        IdleTimeout: time.Duration(nodecfg.IdleTimeout) * time.Second,
-    }
-    if nodecfg.IdleTimeout <= 0 {
-        server.IdleTimeout = 10 * time.Second
-    }
-    err = server.ListenAndServe()
-    if err != nil {
-        log.Print(err)
-        return
-    }
+	if nodecfg.IdleTimeout <= 0 {
+		server.IdleTimeout = 10 * time.Second
+	}
+	err = server.ListenAndServe()
+	if err != nil {
+		panic(err)
+	}
 }

@@ -7,16 +7,16 @@ package backend
 import "net/http"
 
 type Querier interface {
-    Query(w http.ResponseWriter, req *http.Request) (err error)
+	Query(w http.ResponseWriter, req *http.Request) (err error)
 }
 
 type BackendAPI interface {
-    Querier
-    IsActive() (b bool)
-    IsWriteOnly() (b bool)
-    Ping() (version string, err error)
-    GetZone() (zone string)
-    Write(p []byte) (err error)
-    Close() (err error)
-    JustQuery(req *http.Request) (header http.Header, status int, body []byte, err error)
+	Querier
+	IsActive() (b bool)
+	IsWriteOnly() (b bool)
+	Ping() (version string, err error)
+	GetZone() (zone string)
+	Write(p []byte) (err error)
+	Close() (err error)
+	JustQuery(req *http.Request) (header http.Header, status int, body []byte, err error)
 }
