@@ -27,7 +27,7 @@ type statementArray struct {
 }
 
 // GetSerisArray byte转化为seri
-func GetSerisArray(sBody []byte) (ss []seri, err error) {
+func GetSeriesArray(sBody []byte) (ss []seri, err error) {
     var tmp statementArray
     err = json.Unmarshal(sBody, &tmp)
     if err == nil {

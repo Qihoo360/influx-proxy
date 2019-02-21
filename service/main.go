@@ -30,8 +30,8 @@ func init() {
 
     flag.StringVar(&ConfigFile, "config", "proxy.json", "proxy config file")
     flag.StringVar(&NodeName, "node", "l1", "node name")
-    flag.StringVar(&LogPath, "log-path", "bin/influx-proxy.log", "log file path")
-    flag.StringVar(&StoreDir, "data-dir", "bin/place", "dir to store .dat .rec")
+    flag.StringVar(&LogPath, "log-path", "proxy.log", "log file path")
+    flag.StringVar(&StoreDir, "data-dir", "data", "dir to store .dat .rec")
     flag.Parse()
 }
 
@@ -65,13 +65,13 @@ func main() {
     initLog()
     exist, err := PathExists(StoreDir)
     if err != nil {
-        log.Println("check dir error!")
+        log.Println("check data dir error")
         return
     }
     if !exist {
         err = os.MkdirAll(StoreDir, os.ModePerm)
         if err != nil {
-            log.Println("create dir error!")
+            log.Println("check data dir error")
             return
         }
     }

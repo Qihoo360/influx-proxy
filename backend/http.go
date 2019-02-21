@@ -129,7 +129,7 @@ func (hb *HttpBackend) GetZone() (zone string) {
     return hb.Zone
 }
 
-func (hb *HttpBackend) JustQuery(req *http.Request) (header http.Header, status int, body []byte, err error) {
+func (hb *HttpBackend) QueryResp(req *http.Request) (header http.Header, status int, body []byte, err error) {
     if len(req.Form) == 0 {
         req.Form = url.Values{}
     }

@@ -577,7 +577,7 @@ func (ic *InfluxCluster) QueryAll(req *http.Request) (sHeader http.Header, bodys
             }
             need = true
 
-            header, _, sBody, Err := api.JustQuery(req)
+            header, _, sBody, Err := api.QueryResp(req)
             if Err != nil {
                 err = Err
                 continue
@@ -602,7 +602,7 @@ func (ic *InfluxCluster) QueryAll(req *http.Request) (sHeader http.Header, bodys
 func (ic *InfluxCluster) showMeasurements(bodys [][]byte) (fBody []byte, err error) {
     measureMap := make(map[string]seri)
     for _, body := range bodys {
-        sSs, Err := GetSerisArray(body)
+        sSs, Err := GetSeriesArray(body)
         if Err != nil {
             err = Err
             return
@@ -631,7 +631,7 @@ func (ic *InfluxCluster) showMeasurements(bodys [][]byte) (fBody []byte, err err
 func (ic *InfluxCluster) showTagFieldkey(bodys [][]byte) (fBody []byte, err error) {
     seriesMap := make(map[string]seri)
     for _, body := range bodys {
-        sSs, Err := GetSerisArray(body)
+        sSs, Err := GetSeriesArray(body)
         if Err != nil {
             err = Err
             return
