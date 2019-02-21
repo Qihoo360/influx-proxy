@@ -432,6 +432,19 @@ func (ic *InfluxCluster) Query(w http.ResponseWriter, req *http.Request) (err er
         }
     }
 
+    for _, api := range apis {
+        if api.GetZone() == ic.Zone {
+            continue
+        }
+        if !api.IsActive() {
+            continue
+        }
+        err = api.Query(w, req)
+        if err == nil {
+            return
+        }
+    }
+
     w.WriteHeader(400)
     w.Write([]byte("query error\n"))
     atomic.AddInt64(&ic.stats.QueryRequestsFail, 1)
