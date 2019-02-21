@@ -77,8 +77,7 @@ func main() {
     }
 
     fcs := backend.NewFileConfigSource(ConfigFile, NodeName)
-    var nodecfg backend.NodeConfig
-    nodecfg, err = fcs.LoadNode()
+    nodecfg, err := fcs.LoadNode()
     if err != nil {
         log.Printf("config source load failed.")
         return
@@ -101,6 +100,7 @@ func main() {
     }
     err = server.ListenAndServe()
     if err != nil {
-        panic(err)
+        log.Print(err)
+        return
     }
 }

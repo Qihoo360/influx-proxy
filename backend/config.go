@@ -115,8 +115,8 @@ func (fcs *FileConfigSource) LoadBackends() (backends map[string]*BackendConfig,
     return
 }
 
-func (fcs *FileConfigSource) LoadMeasurements() (mMap map[string][]string, err error) {
-    mMap = fcs.KEYMAPS
-    log.Printf("%d measurements loaded from file.", len(mMap))
+func (fcs *FileConfigSource) LoadMeasurements() (m_map map[string][]string, err error) {
+    m_map = fcs.KEYMAPS
+    log.Printf("%d measurements loaded from file.", len(m_map))
     return
 }

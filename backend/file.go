@@ -58,7 +58,7 @@ func (fb *FileBackend) Write(p []byte) (err error) {
     fb.lock.Lock()
     defer fb.lock.Unlock()
 
-    var length = uint32(len(p))
+    var length uint32 = uint32(len(p))
     err = binary.Write(fb.producer, binary.BigEndian, length)
     if err != nil {
         log.Print("write length error: ", err)

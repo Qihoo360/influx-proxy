@@ -255,18 +255,18 @@ func (ic *InfluxCluster) loadBackends() (backends map[string]BackendAPI, bas []B
 func (ic *InfluxCluster) loadMeasurements(backends map[string]BackendAPI) (m2bs map[string][]BackendAPI, err error) {
     m2bs = make(map[string][]BackendAPI)
 
-    mMmap, err := ic.cfgsrc.LoadMeasurements()
+    m_map, err := ic.cfgsrc.LoadMeasurements()
     if err != nil {
         return
     }
 
-    for name, bsNames := range mMmap {
+    for name, bs_names := range m_map {
         var bss []BackendAPI
-        for _, bsName := range bsNames {
-            bs, ok := backends[bsName]
+        for _, bsNames := range bs_names {
+            bs, ok := backends[bsNames]
             if !ok {
                 err = ErrBackendNotExist
-                log.Println(bsName, err)
+                log.Println(bsNames, err)
                 continue
             }
             bss = append(bss, bs)
@@ -288,13 +288,13 @@ func (ic *InfluxCluster) LoadConfig() (err error) {
     }
 
     ic.lock.Lock()
-    origBackends := ic.backends
+    orig_backends := ic.backends
     ic.backends = backends
     ic.bas = bas
     ic.m2bs = m2bs
     ic.lock.Unlock()
 
-    for name, bs := range origBackends {
+    for name, bs := range orig_backends {
         err = bs.Close()
         if err != nil {
             log.Printf("fail in close backend %s", name)
@@ -449,14 +449,6 @@ func BytesToInt64(buf []byte) int64 {
     }
     return ans
 }
-func allnumber(buf []byte) bool {
-    for _, a := range buf {
-        if a < '0' || a > '9' {
-            return false
-        }
-    }
-    return true
-}
 
 // Wrong in one row will not stop others.
 // So don't try to return error, just print it.
@@ -490,12 +482,12 @@ func (ic *InfluxCluster) WriteRow(line []byte, precision string) {
 
     d := models.GetPrecisionMultiplier(precision)
     var nano time.Duration
-    if !allnumber(lines[length-1]) {
+    if len(lines) == 2 {
         nano = time.Duration(time.Now().UnixNano())
         nano = nano / time.Duration(d) * time.Duration(d)
         buf.Write(line)
         buf.Write([]byte(" "))
-    } else {
+    } else if len(lines) == 3 {
         nano = time.Duration(BytesToInt64(lines[length-1]))
         nano = nano / time.Duration(d) * time.Duration(d)
         res := bytes.Join(lines[:length-1], []byte(" "))
@@ -544,19 +536,17 @@ func (ic *InfluxCluster) Write(p []byte, precision string) (err error) {
         ic.WriteRow(line, precision)
     }
 
-    /*
-       ic.lock.RLock()
-       defer ic.lock.RUnlock()
-       if len(ic.bas) > 0 {
-           for _, n := range ic.bas {
-               err = n.Write(p)
-               if err != nil {
-                   log.Printf("error: %s\n", err)
-                   atomic.AddInt64(&ic.stats.WriteRequestsFail, 1)
-               }
-           }
-       }
-    */
+    ic.lock.RLock()
+    defer ic.lock.RUnlock()
+    if len(ic.bas) > 0 {
+        for _, n := range ic.bas {
+            err = n.Write(p)
+            if err != nil {
+                log.Printf("error: %s\n", err)
+                atomic.AddInt64(&ic.stats.WriteRequestsFail, 1)
+            }
+        }
+    }
     return
 }
 
