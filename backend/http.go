@@ -20,6 +20,7 @@ import (
 var (
     ErrBadRequest = errors.New("Bad Request\n")
     ErrNotFound   = errors.New("Not Found\n")
+    ErrInternal   = errors.New("Internal Error")
     ErrUnknown    = errors.New("Unknown Error\n")
 )
 

@@ -262,11 +262,11 @@ func (ic *InfluxCluster) loadMeasurements(backends map[string]BackendAPI) (m2bs 
 
     for name, bs_names := range m_map {
         var bss []BackendAPI
-        for _, bsNames := range bs_names {
-            bs, ok := backends[bsNames]
+        for _, bs_name := range bs_names {
+            bs, ok := backends[bs_name]
             if !ok {
                 err = ErrBackendNotExist
-                log.Println(bsNames, err)
+                log.Println(bs_name, err)
                 continue
             }
             bss = append(bss, bs)
