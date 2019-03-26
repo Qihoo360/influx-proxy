@@ -31,6 +31,7 @@ func NewHttpService(ic *backend.InfluxCluster, db string) (hs *HttpService) {
     return
 }
 
+// Register 注册http方法
 func (hs *HttpService) Register(mux *http.ServeMux) {
     mux.HandleFunc("/reload", hs.HandlerReload)
     mux.HandleFunc("/ping", hs.HandlerPing)
@@ -40,6 +41,7 @@ func (hs *HttpService) Register(mux *http.ServeMux) {
     mux.HandleFunc("/debug/pprof/profile", pprof.Profile)
 }
 
+// HandlerReload reload方法入口
 func (hs *HttpService) HandlerReload(w http.ResponseWriter, req *http.Request) {
     defer req.Body.Close()
     w.Header().Add("X-Influxdb-Version", backend.VERSION)
@@ -55,6 +57,7 @@ func (hs *HttpService) HandlerReload(w http.ResponseWriter, req *http.Request) {
     return
 }
 
+// HandlerPing ping方法入口
 func (hs *HttpService) HandlerPing(w http.ResponseWriter, req *http.Request) {
     defer req.Body.Close()
     version, err := hs.ic.Ping()
@@ -67,15 +70,15 @@ func (hs *HttpService) HandlerPing(w http.ResponseWriter, req *http.Request) {
     return
 }
 
+// HandlerQuery query方法入口
 func (hs *HttpService) HandlerQuery(w http.ResponseWriter, req *http.Request) {
     defer req.Body.Close()
     w.Header().Add("X-Influxdb-Version", backend.VERSION)
-
     db := req.FormValue("db")
     if hs.db != "" {
         if db != hs.db {
             w.WriteHeader(404)
-            w.Write([]byte("database not exist."))
+            w.Write([]byte("database not exist.\n"))
             return
         }
     }
@@ -93,18 +96,22 @@ func (hs *HttpService) HandlerQuery(w http.ResponseWriter, req *http.Request) {
     return
 }
 
+// HandlerWrite write方法入口
 func (hs *HttpService) HandlerWrite(w http.ResponseWriter, req *http.Request) {
     defer req.Body.Close()
     w.Header().Add("X-Influxdb-Version", backend.VERSION)
-
     if req.Method != "POST" {
         w.WriteHeader(405)
         w.Write([]byte("method not allow."))
         return
     }
 
-    db := req.URL.Query().Get("db")
+    precision := req.URL.Query().Get("precision")
+    if precision == "" {
+        precision = "ns"
+    }
 
+    db := req.URL.Query().Get("db")
     if hs.db != "" {
         if db != hs.db {
             w.WriteHeader(404)
@@ -132,7 +139,7 @@ func (hs *HttpService) HandlerWrite(w http.ResponseWriter, req *http.Request) {
         return
     }
 
-    err = hs.ic.Write(p)
+    err = hs.ic.Write(p, precision)
     if err == nil {
         w.WriteHeader(204)
     }

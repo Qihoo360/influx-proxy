@@ -22,28 +22,25 @@ type FileBackend struct {
     meta     *os.File
 }
 
-func NewFileBackend(filename string) (fb *FileBackend, err error) {
+func NewFileBackend(filename string, storedir string) (fb *FileBackend, err error) {
     fb = &FileBackend{
-        filename: filename,
+        filename: filepath.Join(storedir, filename),
         dataflag: false,
     }
 
-    fb.producer, err = os.OpenFile(filepath.Join(os.Getenv("INFLUX_PROXY_DATA_DIR"), filename+".dat"),
-        os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0644)
+    fb.producer, err = os.OpenFile(fb.filename+".dat", os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0644)
     if err != nil {
         log.Print("open producer error: ", err)
         return
     }
 
-    fb.consumer, err = os.OpenFile(filepath.Join(os.Getenv("INFLUX_PROXY_DATA_DIR"), filename+".dat"),
-        os.O_RDONLY, 0644)
+    fb.consumer, err = os.OpenFile(fb.filename+".dat", os.O_RDONLY, 0644)
     if err != nil {
         log.Print("open consumer error: ", err)
         return
     }
 
-    fb.meta, err = os.OpenFile(filepath.Join(os.Getenv("INFLUX_PROXY_DATA_DIR"), filename+".rec"),
-        os.O_RDWR|os.O_CREATE, 0644)
+    fb.meta, err = os.OpenFile(fb.filename+".rec", os.O_RDWR|os.O_CREATE, 0644)
     if err != nil {
         log.Print("open meta error: ", err)
         return
@@ -56,6 +53,7 @@ func NewFileBackend(filename string) (fb *FileBackend, err error) {
     return
 }
 
+// Write 写到文件中
 func (fb *FileBackend) Write(p []byte) (err error) {
     fb.lock.Lock()
     defer fb.lock.Unlock()
@@ -86,6 +84,7 @@ func (fb *FileBackend) Write(p []byte) (err error) {
     return
 }
 
+// IsData 查看数据标识位dataflag
 func (fb *FileBackend) IsData() (dataflag bool) {
     fb.lock.Lock()
     defer fb.lock.Unlock()
@@ -116,6 +115,7 @@ func (fb *FileBackend) Read() (p []byte, err error) {
     return
 }
 
+// CleanUp
 func (fb *FileBackend) CleanUp() (err error) {
     _, err = fb.consumer.Seek(0, io.SeekStart)
     if err != nil {
@@ -135,7 +135,7 @@ func (fb *FileBackend) CleanUp() (err error) {
         return
     }
 
-    fb.producer, err = os.OpenFile(filepath.Join(os.Getenv("INFLUX_PROXY_DATA_DIR"), fb.filename+".dat"),
+    fb.producer, err = os.OpenFile(fb.filename+".dat",
         os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0644)
     if err != nil {
         log.Print("open producer error: ", err)

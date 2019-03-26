@@ -3,3 +3,4 @@ bin
 testbk*
 *.dat
 *.rec
+bin/*

@@ -18,10 +18,10 @@ import (
 )
 
 var (
-    ErrBadRequest = errors.New("Bad Request")
-    ErrNotFound   = errors.New("Not Found")
+    ErrBadRequest = errors.New("Bad Request\n")
+    ErrNotFound   = errors.New("Not Found\n")
     ErrInternal   = errors.New("Internal Error")
-    ErrUnknown    = errors.New("Unknown Error")
+    ErrUnknown    = errors.New("Unknown Error\n")
 )
 
 func Compress(buf *bytes.Buffer, p []byte) (err error) {
@@ -127,6 +127,50 @@ func copyHeader(dst, src http.Header) {
 
 func (hb *HttpBackend) GetZone() (zone string) {
     return hb.Zone
+}
+
+func (hb *HttpBackend) QueryResp(req *http.Request) (header http.Header, status int, body []byte, err error) {
+    if len(req.Form) == 0 {
+        req.Form = url.Values{}
+    }
+    req.Form.Set("db", hb.DB)
+    req.ContentLength = 0
+
+    req.URL, err = url.Parse(hb.URL + "/query?" + req.Form.Encode())
+    if err != nil {
+        log.Print("internal url parse error: ", err)
+        return
+    }
+
+    q := strings.TrimSpace(req.FormValue("q"))
+
+    resp, err := hb.transport.RoundTrip(req)
+    defer resp.Body.Close()
+    if err != nil {
+        log.Printf("query error: %s,the query is %s\n", err, q)
+        hb.Active = false
+        return
+    }
+
+    respDody := resp.Body
+    if resp.Header.Get("Content-Encoding") == "gzip" {
+        respDody, err = gzip.NewReader(resp.Body)
+        defer respDody.Close()
+        if err != nil {
+            log.Printf("unable to decode gzip body")
+            return
+        }
+    }
+
+    body, err = ioutil.ReadAll(respDody)
+    if err != nil {
+        log.Printf("read body error: %s,the query is %s\n", err, q)
+        return
+    }
+
+    header = resp.Header
+    status = resp.StatusCode
+    return
 }
 
 // Don't setup Accept-Encoding: gzip. Let real client do so.

@@ -3,7 +3,7 @@ package monitor
 import (
     "time"
 
-    client "github.com/influxdata/influxdb/client/v2"
+    "github.com/influxdata/influxdb/client/v2"
 )
 
 type Metric struct {

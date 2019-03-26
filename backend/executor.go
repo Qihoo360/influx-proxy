@@ -26,9 +26,5 @@ func (iqe *InfluxQLExecutor) Query(w http.ResponseWriter, req *http.Request) (er
     if err != nil || !matched {
         return ErrNotClusterQuery
     }
-
-    w.WriteHeader(200)
-    w.Write([]byte(""))
-
     return
 }

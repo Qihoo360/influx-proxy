@@ -111,7 +111,6 @@ func ScanToken(data []byte, atEOF bool) (advance int, token []byte, err error) {
     }
 
     token = data[start:advance]
-    // fmt.Printf("%s (%d, %d) = %s\n", data, start, advance, token)
     return
 }
 
@@ -124,10 +123,8 @@ func GetMeasurementFromInfluxQL(q string) (m string, err error) {
     for scanner.Scan() {
         tokens = append(tokens, scanner.Text())
     }
-    // fmt.Printf("%v\n", tokens)
 
     for i := 0; i < len(tokens); i++ {
-        // fmt.Printf("%v\n", tokens[i])
         if strings.ToLower(tokens[i]) == "from" || strings.ToLower(tokens[i]) == "measurement" {
             if i+1 < len(tokens) {
                 m = getMeasurement(tokens[i+1:])
@@ -144,7 +141,7 @@ func getMeasurement(tokens []string) (m string) {
         m = tokens[1]
         m = m[1:]
         if m[0] == '"' || m[0] == '\'' {
-            m = m[1 : len(m)-1]
+            m = m[1: len(m)-1]
         }
         return
     }
@@ -155,7 +152,7 @@ func getMeasurement(tokens []string) (m string) {
     }
 
     if m[0] == '"' || m[0] == '\'' {
-        m = m[1 : len(m)-1]
+        m = m[1: len(m)-1]
         return
     }
 
@@ -166,7 +163,7 @@ func getMeasurement(tokens []string) (m string) {
 
     m = m[index+1:]
     if m[0] == '"' || m[0] == '\'' {
-        m = m[1 : len(m)-1]
+        m = m[1: len(m)-1]
     }
     return
 }

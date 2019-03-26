@@ -55,7 +55,6 @@ func NewFileConfigSource(cfgfile string, node string) (fcs *FileConfigSource) {
     fcs = &FileConfigSource{
         node: node,
     }
-
     file, err := os.Open(cfgfile)
     if err != nil {
         log.Printf("file load error: %s", fcs.node)
@@ -63,7 +62,8 @@ func NewFileConfigSource(cfgfile string, node string) (fcs *FileConfigSource) {
     }
     defer file.Close()
     dec := json.NewDecoder(file)
-    err = dec.Decode(&fcs)
+    err = dec.Decode(fcs)
+
     return
 }
 
@@ -80,16 +80,16 @@ func (fcs *FileConfigSource) LoadBackends() (backends map[string]*BackendConfig,
     backends = make(map[string]*BackendConfig)
     for name, val := range fcs.BACKENDS {
         cfg := &BackendConfig{
-            URL: val.URL,
-            DB: val.DB,
-            Zone: val.Zone,
-            Interval: val.Interval,
-            Timeout: val.Timeout,
-            TimeoutQuery: val.TimeoutQuery,
-            MaxRowLimit: val.MaxRowLimit,
-            CheckInterval: val.CheckInterval,
+            URL:             val.URL,
+            DB:              val.DB,
+            Zone:            val.Zone,
+            Interval:        val.Interval,
+            Timeout:         val.Timeout,
+            TimeoutQuery:    val.TimeoutQuery,
+            MaxRowLimit:     val.MaxRowLimit,
+            CheckInterval:   val.CheckInterval,
             RewriteInterval: val.RewriteInterval,
-            WriteOnly: val.WriteOnly,
+            WriteOnly:       val.WriteOnly,
         }
         if cfg.Interval == 0 {
             cfg.Interval = 1000

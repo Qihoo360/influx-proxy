@@ -34,20 +34,20 @@ type Backends struct {
 }
 
 // maybe ch_timer is not the best way.
-func NewBackends(cfg *BackendConfig, name string) (bs *Backends, err error) {
+// NewBackends 新建一个Backends对象
+func NewBackends(cfg *BackendConfig, name string, storedir string) (bs *Backends, err error) {
     bs = &Backends{
         HttpBackend: NewHttpBackend(cfg),
         // FIXME: path...
-        Interval:        cfg.Interval,
-        RewriteInterval: cfg.RewriteInterval,
-        running:         true,
-        ticker:          time.NewTicker(time.Millisecond * time.Duration(cfg.RewriteInterval)),
-        ch_write:        make(chan []byte, 16),
-
+        Interval:         cfg.Interval,
+        RewriteInterval:  cfg.RewriteInterval,
+        running:          true,
+        ticker:           time.NewTicker(time.Millisecond * time.Duration(cfg.RewriteInterval)),
+        ch_write:         make(chan []byte, 16),
         rewriter_running: false,
         MaxRowLimit:      int32(cfg.MaxRowLimit),
     }
-    bs.fb, err = NewFileBackend(name)
+    bs.fb, err = NewFileBackend(name, storedir)
     if err != nil {
         return
     }
@@ -56,6 +56,7 @@ func NewBackends(cfg *BackendConfig, name string) (bs *Backends, err error) {
     return
 }
 
+// worker 新建Backends对象时，启动作为守护协程
 func (bs *Backends) worker() {
     for bs.running {
         select {
@@ -85,6 +86,7 @@ func (bs *Backends) worker() {
     }
 }
 
+// Write 把[]byte类型p发送到ch_write管道中
 func (bs *Backends) Write(p []byte) (err error) {
     if !bs.running {
         return io.ErrClosedPipe
@@ -94,12 +96,14 @@ func (bs *Backends) Write(p []byte) (err error) {
     return
 }
 
+// Close 退出worker，关闭管道
 func (bs *Backends) Close() (err error) {
     bs.running = false
     close(bs.ch_write)
     return
 }
 
+// WriteBuffer 对象p写进bs.buffer
 func (bs *Backends) WriteBuffer(p []byte) {
     bs.write_counter++
 
@@ -137,6 +141,7 @@ func (bs *Backends) WriteBuffer(p []byte) {
     return
 }
 
+// Flush 清空管道中的数据到备份文件中
 func (bs *Backends) Flush() {
     if bs.buffer == nil {
         return
@@ -193,6 +198,7 @@ func (bs *Backends) Flush() {
     return
 }
 
+// Idle 数据写入influxdb
 func (bs *Backends) Idle() {
     if !bs.rewriter_running && bs.fb.IsData() {
         bs.rewriter_running = true
@@ -202,6 +208,7 @@ func (bs *Backends) Idle() {
     // TODO: report counter
 }
 
+// RewriteLoop
 func (bs *Backends) RewriteLoop() {
     for bs.fb.IsData() {
         if !bs.running {
