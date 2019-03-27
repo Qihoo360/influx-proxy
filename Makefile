@@ -11,7 +11,7 @@
 REGISTRY_URI :=wilhelmguo
 RELEASE_VERSION :=$(shell git describe --always --tags)
 
-all: build build-image push-image
+all: build-image push-image
 
 build:
 	mkdir -p bin
