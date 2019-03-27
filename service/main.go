@@ -30,7 +30,7 @@ func init() {
 
 	flag.StringVar(&ConfigFile, "config", "proxy.json", "proxy config file")
 	flag.StringVar(&NodeName, "node", "l1", "node name")
-	flag.StringVar(&LogPath, "log-path", "proxy.log", "log file path")
+	flag.StringVar(&LogPath, "log-path", "", "log file path")
 	flag.StringVar(&StoreDir, "data-dir", "data", "dir to store .dat .rec")
 	flag.Parse()
 }

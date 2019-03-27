@@ -1,4 +1,4 @@
-package: github.com/shell909090/influx-proxy
+package: github.com/wilhelmguo/influx-proxy
 import:
   - package: github.com/influxdata/influxdb
     version: ~1.6.4

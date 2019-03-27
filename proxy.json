@@ -4,6 +4,10 @@
             "url": "http://influxdb-1:8086",
             "db": "test",
             "zone": "local",
+            "basicauth": {
+                "username": "admin",
+                "password": "a1b2c3d4e"
+            },
             "interval": 1000,
             "timeout": 10000,
             "timeoutquery": 600000,
@@ -14,6 +18,10 @@
         "influxdb-2": {
             "url": "http://influxdb-2:8086",
             "db": "test",
+            "basicauth": {
+                "username": "admin",
+                "password": "a1b2c3d4e"
+            },
             "zone": "local",
             "interval": 1000,
             "timeout": 10000,
