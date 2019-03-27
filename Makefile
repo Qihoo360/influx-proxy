@@ -7,7 +7,11 @@
 ## Keywords:
 ## X-URL:
 
-all: build
+# Build variables
+REGISTRY_URI :=wilhelmguo
+RELEASE_VERSION :=$(shell git describe --always --tags)
+
+all: build build-image push-image
 
 build:
 	mkdir -p bin
@@ -22,5 +26,11 @@ bench:
 clean:
 	rm -rf bin
 
+build-image:
+	@echo "version: $(RELEASE_VERSION)"
+	docker build --no-cache -t $(REGISTRY_URI)/influx-proxy:$(RELEASE_VERSION) .
+
+push-image:
+	docker push $(REGISTRY_URI)/influx-proxy:$(RELEASE_VERSION)
 
 ### Makefile ends here
