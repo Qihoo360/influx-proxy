@@ -1,0 +1,8 @@
+package: github.com/shell909090/influx-proxy
+import:
+  - package: github.com/influxdata/influxdb
+    version: ~1.6.4
+    subpackages:
+      - client/v2
+  - package: gopkg.in/natefinch/lumberjack.v2
+    version: ~2.1.0
