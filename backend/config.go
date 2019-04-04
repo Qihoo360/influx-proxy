@@ -21,7 +21,6 @@ var (
 
 type NodeConfig struct {
 	ListenAddr   string
-	DB           string
 	Zone         string
 	Nexts        string
 	Interval     int
@@ -51,7 +50,7 @@ type BasicAuth struct {
 type FileConfigSource struct {
 	node         string
 	BACKENDS     map[string]BackendConfig
-	KEYMAPS      map[string][]string
+	KEYMAPS      map[string]map[string][]string
 	NODES        map[string]NodeConfig
 	DEFAULT_NODE NodeConfig
 }
@@ -121,7 +120,7 @@ func (fcs *FileConfigSource) LoadBackends() (backends map[string]*BackendConfig,
 	return
 }
 
-func (fcs *FileConfigSource) LoadMeasurements() (m_map map[string][]string, err error) {
+func (fcs *FileConfigSource) LoadMeasurements() (m_map map[string]map[string][]string, err error) {
 	m_map = fcs.KEYMAPS
 	log.Printf("%d measurements loaded from file.", len(m_map))
 	return

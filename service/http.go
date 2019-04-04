@@ -16,17 +16,12 @@ import (
 )
 
 type HttpService struct {
-	db string
 	ic *backend.InfluxCluster
 }
 
-func NewHttpService(ic *backend.InfluxCluster, db string) (hs *HttpService) {
+func NewHttpService(ic *backend.InfluxCluster) (hs *HttpService) {
 	hs = &HttpService{
-		db: db,
 		ic: ic,
-	}
-	if hs.db != "" {
-		log.Print("http database: ", hs.db)
 	}
 	return
 }
@@ -74,14 +69,7 @@ func (hs *HttpService) HandlerPing(w http.ResponseWriter, req *http.Request) {
 func (hs *HttpService) HandlerQuery(w http.ResponseWriter, req *http.Request) {
 	defer req.Body.Close()
 	w.Header().Add("X-Influxdb-Version", backend.VERSION)
-	db := req.FormValue("db")
-	if hs.db != "" {
-		if db != hs.db {
-			w.WriteHeader(404)
-			w.Write([]byte("database not exist.\n"))
-			return
-		}
-	}
+	//db := req.FormValue("db")
 
 	q := strings.TrimSpace(req.FormValue("q"))
 	err := hs.ic.Query(w, req)
@@ -111,14 +99,7 @@ func (hs *HttpService) HandlerWrite(w http.ResponseWriter, req *http.Request) {
 		precision = "ns"
 	}
 
-	db := req.URL.Query().Get("db")
-	if hs.db != "" {
-		if db != hs.db {
-			w.WriteHeader(404)
-			w.Write([]byte("database not exist."))
-			return
-		}
-	}
+	//db := req.URL.Query().Get("db")
 
 	body := req.Body
 	if req.Header.Get("Content-Encoding") == "gzip" {
@@ -139,7 +120,9 @@ func (hs *HttpService) HandlerWrite(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	err = hs.ic.Write(p, precision)
+	db := req.FormValue("db")
+
+	err = hs.ic.Write(p, precision, db)
 	if err == nil {
 		w.WriteHeader(204)
 	}

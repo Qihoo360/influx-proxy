@@ -74,7 +74,7 @@ type InfluxCluster struct {
 	cfgsrc         *FileConfigSource
 	bas            []BackendAPI
 	backends       map[string]BackendAPI
-	m2bs           map[string][]BackendAPI // measurements to backends
+	m2bs           map[string]map[string][]BackendAPI // measurements to backends
 	stats          *Statistics
 	counter        *Statistics
 	ticker         *time.Ticker
@@ -167,7 +167,7 @@ func (ic *InfluxCluster) Flush() {
 
 func (ic *InfluxCluster) WriteStatistics() (err error) {
 	metric := &monitor.Metric{
-		Name: "influxdb.cluster.statistics",
+		Name: "statistics",
 		Tags: ic.defaultTags,
 		Fields: map[string]interface{}{
 			"statQueryRequest":         ic.counter.QueryRequests,
@@ -187,7 +187,8 @@ func (ic *InfluxCluster) WriteStatistics() (err error) {
 	if err != nil {
 		return
 	}
-	return ic.Write([]byte(line+"\n"), "ns")
+
+	return ic.Write([]byte(line+"\n"), "ns", "influxproxy")
 }
 
 func (ic *InfluxCluster) ForbidQuery(s string) (err error) {
@@ -252,26 +253,30 @@ func (ic *InfluxCluster) loadBackends() (backends map[string]BackendAPI, bas []B
 	return
 }
 
-func (ic *InfluxCluster) loadMeasurements(backends map[string]BackendAPI) (m2bs map[string][]BackendAPI, err error) {
-	m2bs = make(map[string][]BackendAPI)
-
+func (ic *InfluxCluster) loadMeasurements(backends map[string]BackendAPI) (m2bs map[string]map[string][]BackendAPI, err error) {
+	m2bs = make(map[string]map[string][]BackendAPI)
 	m_map, err := ic.cfgsrc.LoadMeasurements()
 	if err != nil {
 		return
 	}
 
-	for name, bs_names := range m_map {
-		var bss []BackendAPI
-		for _, bs_name := range bs_names {
-			bs, ok := backends[bs_name]
-			if !ok {
-				err = ErrBackendNotExist
-				log.Println(bs_name, err)
-				continue
+	for dbName, measurementsMap := range m_map {
+		measurementBackendAPIMap := make(map[string][]BackendAPI)
+		for measurementName, backendNames := range measurementsMap {
+			var backendAPIS []BackendAPI
+			for _, backendName := range backendNames {
+				backendAPI, ok := backends[backendName]
+				if !ok {
+					err = ErrBackendNotExist
+					log.Println(backendName, err)
+					continue
+				}
+				backendAPIS = append(backendAPIS, backendAPI)
 			}
-			bss = append(bss, bs)
+			measurementBackendAPIMap[measurementName] = backendAPIS
+
 		}
-		m2bs[name] = bss
+		m2bs[dbName] = measurementBackendAPIMap
 	}
 	return
 }
@@ -332,25 +337,38 @@ func (ic *InfluxCluster) CheckQuery(q string) (err error) {
 	return
 }
 
-func (ic *InfluxCluster) GetBackends(key string) (backends []BackendAPI, ok bool) {
+func (ic *InfluxCluster) GetBackends(measurement, db string) (backends []BackendAPI, ok bool) {
 	ic.lock.RLock()
 	defer ic.lock.RUnlock()
-	backends, ok = ic.m2bs[key]
-	// match use prefix
-	if !ok {
-		for k, v := range ic.m2bs {
-			if strings.HasPrefix(key, k) {
+
+	keyMap, dbExist := ic.m2bs[db]
+	if !dbExist {
+		ok = false
+		return
+	}
+
+	backends, measurementExist := keyMap[measurement]
+
+	if !measurementExist {
+		for k, v := range keyMap {
+			if strings.HasPrefix(measurement, k) {
 				backends = v
-				ok = true
+				measurementExist = true
 				break
 			}
 		}
+
 	}
 
-	if !ok {
-		backends, ok = ic.m2bs["_default_"]
+	if !measurementExist {
+		backends, measurementExist = keyMap["_default_"]
 	}
 
+	if !measurementExist {
+		ok = false
+		return
+	}
+	ok = true
 	return
 }
 
@@ -407,7 +425,9 @@ func (ic *InfluxCluster) Query(w http.ResponseWriter, req *http.Request) (err er
 		return
 	}
 
-	apis, ok := ic.GetBackends(key)
+	db := req.FormValue("db")
+
+	apis, ok := ic.GetBackends(key, db)
 	if !ok {
 		log.Printf("unknown measurement: %s,the query is %s\n", key, q)
 		w.WriteHeader(400)
@@ -465,7 +485,7 @@ func BytesToInt64(buf []byte) int64 {
 
 // Wrong in one row will not stop others.
 // So don't try to return error, just print it.
-func (ic *InfluxCluster) WriteRow(line []byte, precision string) {
+func (ic *InfluxCluster) WriteRow(line []byte, precision string, db string) {
 	atomic.AddInt64(&ic.stats.PointsWritten, 1)
 	// maybe trim?
 	line = bytes.TrimRight(line, " \t\r\n")
@@ -481,7 +501,8 @@ func (ic *InfluxCluster) WriteRow(line []byte, precision string) {
 		atomic.AddInt64(&ic.stats.PointsWrittenFail, 1)
 		return
 	}
-	bs, ok := ic.GetBackends(key)
+
+	bs, ok := ic.GetBackends(key, db)
 	if !ok {
 		log.Printf("new measurement: %s\n", key)
 		atomic.AddInt64(&ic.stats.PointsWrittenFail, 1)
@@ -522,7 +543,7 @@ func (ic *InfluxCluster) WriteRow(line []byte, precision string) {
 	return
 }
 
-func (ic *InfluxCluster) Write(p []byte, precision string) (err error) {
+func (ic *InfluxCluster) Write(p []byte, precision string, db string) (err error) {
 	atomic.AddInt64(&ic.stats.WriteRequests, 1)
 	defer func(start time.Time) {
 		atomic.AddInt64(&ic.stats.WriteRequestDuration, time.Since(start).Nanoseconds())
@@ -546,7 +567,7 @@ func (ic *InfluxCluster) Write(p []byte, precision string) (err error) {
 			break
 		}
 
-		ic.WriteRow(line, precision)
+		ic.WriteRow(line, precision, db)
 	}
 
 	ic.lock.RLock()
@@ -577,7 +598,10 @@ func (ic *InfluxCluster) Close() (err error) {
 
 func (ic *InfluxCluster) QueryAll(req *http.Request) (sHeader http.Header, bodys [][]byte, err error) {
 	bodys = make([][]byte, 0)
-	for _, v := range ic.m2bs {
+	db := req.FormValue("db")
+	m2bs := ic.m2bs[db]
+
+	for _, v := range m2bs {
 		need := false
 		actu := false
 
