@@ -72,7 +72,7 @@ func main() {
 
 	mux := http.NewServeMux()
 	NewHttpService(ic).Register(mux)
-	logs.Errorf("http service start.")
+	logs.Info("http service start.")
 	server := &http.Server{
 		Addr:        nodecfg.ListenAddr,
 		Handler:     mux,

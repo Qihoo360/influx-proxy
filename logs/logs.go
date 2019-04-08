@@ -1,9 +1,10 @@
 package logs
 
 import (
+	"os"
+
 	"github.com/evalphobia/logrus_sentry"
 	"github.com/sirupsen/logrus"
-	"os"
 )
 
 var (

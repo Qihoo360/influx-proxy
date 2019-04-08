@@ -198,20 +198,20 @@ func (fb *FileBackend) RollbackMeta() (err error) {
 
 	_, err = fb.meta.Seek(0, io.SeekStart)
 	if err != nil {
-		logs.Error("seek meta error: ", err)
+		logs.Error("RollbackMeta seek meta error: ", err)
 		return
 	}
 
 	var off int64
 	err = binary.Read(fb.meta, binary.BigEndian, &off)
 	if err != nil {
-		logs.Error("read meta error: ", err)
+		logs.Error("RollbackMeta read meta error: ", err)
 		return
 	}
 
 	_, err = fb.consumer.Seek(off, io.SeekStart)
 	if err != nil {
-		logs.Error("seek consumer error: ", err)
+		logs.Error("RollbackMeta seek consumer error: ", err)
 		return
 	}
 	return

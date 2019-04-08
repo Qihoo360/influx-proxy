@@ -10,13 +10,14 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
-	"github.com/wilhelmguo/influx-proxy/logs"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strings"
 	"time"
+
+	"github.com/wilhelmguo/influx-proxy/logs"
 )
 
 var (

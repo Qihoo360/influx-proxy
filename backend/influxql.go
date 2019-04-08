@@ -8,8 +8,9 @@ import (
 	"bufio"
 	"bytes"
 	"errors"
-	"log"
 	"strings"
+
+	"github.com/wilhelmguo/influx-proxy/logs"
 )
 
 var (
