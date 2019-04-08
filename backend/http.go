@@ -10,9 +10,9 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"github.com/wilhelmguo/influx-proxy/logs"
 	"io"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"net/url"
 	"strings"
@@ -100,7 +100,7 @@ func (hb *HttpBackend) IsActive() bool {
 func (hb *HttpBackend) Ping() (version string, err error) {
 	resp, err := hb.client.Get(hb.URL + "/ping")
 	if err != nil {
-		log.Print("http error: ", err)
+		logs.Error("http error: ", err)
 		return
 	}
 	defer resp.Body.Close()
@@ -110,14 +110,14 @@ func (hb *HttpBackend) Ping() (version string, err error) {
 	if resp.StatusCode == 204 {
 		return
 	}
-	log.Printf("write status code: %d, the backend is %s\n", resp.StatusCode, hb.URL)
+	logs.Errorf("write status code: %d, the backend is %s\n", resp.StatusCode, hb.URL)
 
 	respbuf, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		log.Print("readall error: ", err)
+		logs.Error("readall error: ", err)
 		return
 	}
-	log.Printf("error response: %s\n", respbuf)
+	logs.Errorf("error response: %s\n", respbuf)
 	return
 }
 
@@ -142,7 +142,7 @@ func (hb *HttpBackend) QueryResp(req *http.Request) (header http.Header, status 
 
 	req.URL, err = url.Parse(hb.URL + "/query?" + req.Form.Encode())
 	if err != nil {
-		log.Print("internal url parse error: ", err)
+		logs.Error("internal url parse error: ", err)
 		return
 	}
 
@@ -151,7 +151,7 @@ func (hb *HttpBackend) QueryResp(req *http.Request) (header http.Header, status 
 	resp, err := hb.transport.RoundTrip(req)
 	defer resp.Body.Close()
 	if err != nil {
-		log.Printf("query error: %s,the query is %s\n", err, q)
+		logs.Errorf("query error: %s,the query is %s\n", err, q)
 		hb.Active = false
 		return
 	}
@@ -161,14 +161,14 @@ func (hb *HttpBackend) QueryResp(req *http.Request) (header http.Header, status 
 		respDody, err = gzip.NewReader(resp.Body)
 		defer respDody.Close()
 		if err != nil {
-			log.Printf("unable to decode gzip body")
+			logs.Errorf("unable to decode gzip body")
 			return
 		}
 	}
 
 	body, err = ioutil.ReadAll(respDody)
 	if err != nil {
-		log.Printf("read body error: %s,the query is %s\n", err, q)
+		logs.Errorf("read body error: %s,the query is %s\n", err, q)
 		return
 	}
 
@@ -191,14 +191,14 @@ func (hb *HttpBackend) Query(w http.ResponseWriter, req *http.Request) (err erro
 
 	req.URL, err = url.Parse(hb.URL + "/query?" + req.Form.Encode())
 	if err != nil {
-		log.Print("internal url parse error: ", err)
+		logs.Error("internal url parse error: ", err)
 		return
 	}
 
 	q := strings.TrimSpace(req.FormValue("q"))
 	resp, err := hb.transport.RoundTrip(req)
 	if err != nil {
-		log.Printf("query error: %s,the query is %s\n", err, q)
+		logs.Errorf("query error: %s,the query is %s\n", err, q)
 		hb.Active = false
 		return
 	}
@@ -208,7 +208,7 @@ func (hb *HttpBackend) Query(w http.ResponseWriter, req *http.Request) (err erro
 
 	p, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		log.Printf("read body error: %s,the query is %s\n", err, q)
+		logs.Errorf("read body error: %s,the query is %s\n", err, q)
 		return
 	}
 
@@ -229,11 +229,11 @@ func (hb *HttpBackend) Write(p []byte) (err error) {
 	var buf bytes.Buffer
 	err = Compress(&buf, p)
 	if err != nil {
-		log.Print("compress error: ", err)
+		logs.Error("compress error: ", err)
 		return
 	}
 
-	log.Printf("http backend write %s", hb.DB)
+	logs.Errorf("http backend write %s", hb.DB)
 	err = hb.WriteStream(&buf, true)
 	return
 }
@@ -258,7 +258,7 @@ func (hb *HttpBackend) WriteStream(stream io.Reader, compressed bool) (err error
 
 	resp, err := hb.client.Do(req)
 	if err != nil {
-		log.Print("http error: ", err)
+		logs.Error("http error: ", err)
 		hb.Active = false
 		return
 	}
@@ -267,14 +267,14 @@ func (hb *HttpBackend) WriteStream(stream io.Reader, compressed bool) (err error
 	if resp.StatusCode == 204 {
 		return
 	}
-	log.Print("write status code: ", resp.StatusCode)
+	logs.Error("write status code: ", resp.StatusCode)
 
 	respbuf, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		log.Print("readall error: ", err)
+		logs.Error("readall error: ", err)
 		return
 	}
-	log.Printf("error response: %s\n", respbuf)
+	logs.Errorf("error response: %s\n", respbuf)
 
 	// translate code to error
 	// https://docs.influxdata.com/influxdb/v1.1/tools/api/#write
@@ -284,7 +284,7 @@ func (hb *HttpBackend) WriteStream(stream io.Reader, compressed bool) (err error
 	case 404:
 		err = ErrNotFound
 	default: // mostly tcp connection timeout
-		log.Printf("status: %d", resp.StatusCode)
+		logs.Errorf("status: %d", resp.StatusCode)
 		err = ErrUnknown
 	}
 	return

@@ -6,3 +6,9 @@ import:
       - client/v2
   - package: gopkg.in/natefinch/lumberjack.v2
     version: ~2.1.0
+  - package: github.com/sirupsen/logrus
+    version: ~v1.4.1
+  - package: github.com/evalphobia/logrus_sentry
+    version: ~v0.8.2
+  - package: github.com/getsentry/raven-go
+    version: master

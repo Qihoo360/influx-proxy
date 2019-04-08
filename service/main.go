@@ -7,46 +7,29 @@ package main
 import (
 	"errors"
 	"flag"
-	"log"
 	"net/http"
 	"os"
 	"time"
 
-	"gopkg.in/natefinch/lumberjack.v2"
-
 	"github.com/wilhelmguo/influx-proxy/backend"
+	"github.com/wilhelmguo/influx-proxy/logs"
 )
 
 var (
 	ErrConfig  = errors.New("config parse error")
 	ConfigFile string
 	NodeName   string
-	LogPath    string
 	StoreDir   string
+	RavenDSN   string
 )
 
 func init() {
-	log.SetFlags(log.LstdFlags | log.Lmicroseconds | log.Lshortfile)
 
 	flag.StringVar(&ConfigFile, "config", "proxy.json", "proxy config file")
 	flag.StringVar(&NodeName, "node", "l1", "node name")
-	flag.StringVar(&LogPath, "log-path", "", "log file path")
+	flag.StringVar(&RavenDSN, "raven-dsn", "", "the sentry dsn, leave it empty if you not use sentry.")
 	flag.StringVar(&StoreDir, "data-dir", "data", "dir to store .dat .rec")
 	flag.Parse()
-}
-
-// initLog log初始化
-func initLog() {
-	if LogPath == "" {
-		log.SetOutput(os.Stdout)
-	} else {
-		log.SetOutput(&lumberjack.Logger{
-			Filename:   LogPath,
-			MaxSize:    100,
-			MaxBackups: 5,
-			MaxAge:     7,
-		})
-	}
 }
 
 // PathExists 检查目录是否存在
@@ -62,16 +45,17 @@ func PathExists(path string) (bool, error) {
 }
 
 func main() {
-	initLog()
+	logs.InitLog(RavenDSN)
+
 	exist, err := PathExists(StoreDir)
 	if err != nil {
-		log.Println("check data dir error")
+		logs.Error("check data dir error")
 		return
 	}
 	if !exist {
 		err = os.MkdirAll(StoreDir, os.ModePerm)
 		if err != nil {
-			log.Println("check data dir error")
+			logs.Error("check data dir error")
 			return
 		}
 	}
@@ -79,7 +63,7 @@ func main() {
 	fcs := backend.NewFileConfigSource(ConfigFile, NodeName)
 	nodecfg, err := fcs.LoadNode()
 	if err != nil {
-		log.Printf("config source load failed.")
+		logs.Errorf("config source load failed.")
 		return
 	}
 
@@ -88,7 +72,7 @@ func main() {
 
 	mux := http.NewServeMux()
 	NewHttpService(ic).Register(mux)
-	log.Printf("http service start.")
+	logs.Errorf("http service start.")
 	server := &http.Server{
 		Addr:        nodecfg.ListenAddr,
 		Handler:     mux,
@@ -100,7 +84,7 @@ func main() {
 	}
 	err = server.ListenAndServe()
 	if err != nil {
-		log.Print(err)
+		logs.Error(err)
 		return
 	}
 }

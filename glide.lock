@@ -1,12 +1,26 @@
-hash: f09f5d56bd2e8cdd3c53b975e94668a0c77a606afb261e5ac7cb5e6553f3bec4
-updated: 2019-03-27T17:25:19.730877447+08:00
+hash: d1a644c3ae3e7f6104faf52622e41a12ed0cd87fd05d16405bee1320eb836786
+updated: 2019-04-04T18:10:08.439355376+08:00
 imports:
+- name: github.com/certifi/gocertifi
+  version: a4ab0227d360091084658029ec8ae45f989fba3e
+- name: github.com/evalphobia/logrus_sentry
+  version: ab0fa2ee9517a8e8c1de1c07e492e8164f852529
+- name: github.com/getsentry/raven-go
+  version: 04157b81cbfb30cf2092836041063857d8ce9b96
 - name: github.com/influxdata/influxdb
   version: 0036db61391d79bb0bdc769a4d1ad1437df2ac89
   subpackages:
   - client/v2
   - models
   - pkg/escape
+- name: github.com/konsorten/go-windows-terminal-sequences
+  version: f55edac94c9bbba5d6182a4be46d86a2c9b5b50e
+- name: github.com/pkg/errors
+  version: 816c9085562cd7ee03e7f8188a1cfd942858cded
+- name: github.com/sirupsen/logrus
+  version: 8bdbc7bcc01dcbb8ec23dc8a28e332258d25251f
+- name: golang.org/x/sys/unix
+  version: 81d4e9dc473e5e8c933f2aaeba2a3d81efb9aed2
 - name: gopkg.in/natefinch/lumberjack.v2
   version: a96e63847dc3c67d17befa69c303767e2f84e54f
 testImports: []

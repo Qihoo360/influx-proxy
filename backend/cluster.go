@@ -8,7 +8,6 @@ import (
 	"bytes"
 	"errors"
 	"io"
-	"log"
 	"net/http"
 	"os"
 	"regexp"
@@ -20,6 +19,7 @@ import (
 	"unsafe"
 
 	"github.com/influxdata/influxdb/models"
+	"github.com/wilhelmguo/influx-proxy/logs"
 	"github.com/wilhelmguo/influx-proxy/monitor"
 )
 
@@ -115,7 +115,7 @@ func NewInfluxCluster(cfgsrc *FileConfigSource, nodecfg *NodeConfig, storedir st
 	}
 	host, err := os.Hostname()
 	if err != nil {
-		log.Println(err)
+		logs.Errorf("NewInfluxCluster Get hostname error", err)
 	}
 	ic.defaultTags["host"] = host
 	if nodecfg.Interval > 0 {
@@ -147,7 +147,7 @@ func (ic *InfluxCluster) statistics() {
 			unsafe.Pointer(ic.counter)))
 		err := ic.WriteStatistics()
 		if err != nil {
-			log.Println(err)
+			logs.Errorf("WriteStatistics error.%v", err)
 		}
 	}
 }
@@ -233,7 +233,7 @@ func (ic *InfluxCluster) loadBackends() (backends map[string]BackendAPI, bas []B
 	for name, cfg := range bkcfgs {
 		backends[name], err = NewBackends(cfg, name, ic.storedir)
 		if err != nil {
-			log.Printf("create backend error: %s", err)
+			logs.Errorf("create backend error: %s", err)
 			return
 		}
 	}
@@ -243,7 +243,7 @@ func (ic *InfluxCluster) loadBackends() (backends map[string]BackendAPI, bas []B
 			ba, ok := backends[nextname]
 			if !ok {
 				err = ErrBackendNotExist
-				log.Println(nextname, err)
+				logs.Errorf(nextname, err)
 				continue
 			}
 			bas = append(bas, ba)
@@ -268,7 +268,7 @@ func (ic *InfluxCluster) loadMeasurements(backends map[string]BackendAPI) (m2bs 
 				backendAPI, ok := backends[backendName]
 				if !ok {
 					err = ErrBackendNotExist
-					log.Println(backendName, err)
+					logs.Error(backendName, err)
 					continue
 				}
 				backendAPIS = append(backendAPIS, backendAPI)
@@ -302,7 +302,7 @@ func (ic *InfluxCluster) LoadConfig() (err error) {
 	for name, bs := range orig_backends {
 		err = bs.Close()
 		if err != nil {
-			log.Printf("fail in close backend %s", name)
+			logs.Errorf("fail in close backend %s", name)
 		}
 	}
 	return
@@ -418,7 +418,7 @@ func (ic *InfluxCluster) Query(w http.ResponseWriter, req *http.Request) (err er
 
 	key, err := GetMeasurementFromInfluxQL(q)
 	if err != nil {
-		log.Printf("can't get measurement: %s\n", q)
+		logs.Errorf("can't get measurement: %s\n", q)
 		w.WriteHeader(400)
 		w.Write([]byte("can't get measurement\n"))
 		atomic.AddInt64(&ic.stats.QueryRequestsFail, 1)
@@ -429,7 +429,7 @@ func (ic *InfluxCluster) Query(w http.ResponseWriter, req *http.Request) (err er
 
 	apis, ok := ic.GetBackends(key, db)
 	if !ok {
-		log.Printf("unknown measurement: %s,the query is %s\n", key, q)
+		logs.Errorf("unknown measurement: %s,the query is %s\n", key, q)
 		w.WriteHeader(400)
 		w.Write([]byte("unknown measurement\n"))
 		atomic.AddInt64(&ic.stats.QueryRequestsFail, 1)
@@ -497,14 +497,14 @@ func (ic *InfluxCluster) WriteRow(line []byte, precision string, db string) {
 
 	key, err := ScanKey(line)
 	if err != nil {
-		log.Printf("scan key error: %s\n", err)
+		logs.Errorf("scan key error: %s\n", err)
 		atomic.AddInt64(&ic.stats.PointsWrittenFail, 1)
 		return
 	}
 
 	bs, ok := ic.GetBackends(key, db)
 	if !ok {
-		log.Printf("new measurement: %s\n", key)
+		logs.Errorf("new measurement: %s\n", key)
 		atomic.AddInt64(&ic.stats.PointsWrittenFail, 1)
 		// TODO: new measurement?
 		return
@@ -535,7 +535,7 @@ func (ic *InfluxCluster) WriteRow(line []byte, precision string, db string) {
 	for _, b := range bs {
 		err = b.Write(line)
 		if err != nil {
-			log.Printf("cluster write fail: %s\n", key)
+			logs.Errorf("cluster write fail: %s\n", key)
 			atomic.AddInt64(&ic.stats.PointsWrittenFail, 1)
 			return
 		}
@@ -556,7 +556,7 @@ func (ic *InfluxCluster) Write(p []byte, precision string, db string) (err error
 		line, err = buf.ReadBytes('\n')
 		switch err {
 		default:
-			log.Printf("error: %s\n", err)
+			logs.Errorf("error: %s\n", err)
 			atomic.AddInt64(&ic.stats.WriteRequestsFail, 1)
 			return
 		case io.EOF, nil:
@@ -576,7 +576,7 @@ func (ic *InfluxCluster) Write(p []byte, precision string, db string) (err error
 		for _, n := range ic.bas {
 			err = n.Write(p)
 			if err != nil {
-				log.Printf("error: %s\n", err)
+				logs.Errorf("error: %s\n", err)
 				atomic.AddInt64(&ic.stats.WriteRequestsFail, 1)
 			}
 		}
@@ -590,7 +590,7 @@ func (ic *InfluxCluster) Close() (err error) {
 	for name, bs := range ic.backends {
 		err = bs.Close()
 		if err != nil {
-			log.Printf("fail in close backend %s", name)
+			logs.Errorf("fail in close backend %s", name)
 		}
 	}
 	return

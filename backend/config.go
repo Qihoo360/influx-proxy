@@ -7,8 +7,9 @@ package backend
 import (
 	"encoding/json"
 	"errors"
-	"log"
 	"os"
+
+	"github.com/wilhelmguo/influx-proxy/logs"
 )
 
 const (
@@ -61,7 +62,7 @@ func NewFileConfigSource(cfgfile string, node string) (fcs *FileConfigSource) {
 	}
 	file, err := os.Open(cfgfile)
 	if err != nil {
-		log.Printf("file load error: %s", fcs.node)
+		logs.Errorf("file load error: %s", fcs.node)
 		return
 	}
 	defer file.Close()
@@ -76,7 +77,7 @@ func (fcs *FileConfigSource) LoadNode() (nodecfg NodeConfig, err error) {
 	if nodecfg.ListenAddr == "" {
 		nodecfg.ListenAddr = fcs.DEFAULT_NODE.ListenAddr
 	}
-	log.Printf("node config loaded.")
+	logs.Info("node config loaded.")
 	return
 }
 
@@ -116,12 +117,12 @@ func (fcs *FileConfigSource) LoadBackends() (backends map[string]*BackendConfig,
 		}
 		backends[name] = cfg
 	}
-	log.Printf("%d backends loaded from file.", len(backends))
+	logs.Debugf("%d backends loaded from file.", len(backends))
 	return
 }
 
 func (fcs *FileConfigSource) LoadMeasurements() (m_map map[string]map[string][]string, err error) {
 	m_map = fcs.KEYMAPS
-	log.Printf("%d measurements loaded from file.", len(m_map))
+	logs.Debugf("%d measurements loaded from file.", len(m_map))
 	return
 }
