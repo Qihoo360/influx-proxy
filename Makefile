@@ -11,11 +11,11 @@
 REGISTRY_URI :=wilhelmguo
 RELEASE_VERSION :=$(shell git describe --always --tags)
 
-all: build-image push-image
+all: build build-image push-image
 
 build:
 	mkdir -p bin
-	go build -o bin/influx-proxy github.com/wilhelmguo/influx-proxy/service
+	GOOS=linux GOARCH=amd64 go build -o bin/influx-proxy github.com/wilhelmguo/influx-proxy/service
 
 test:
 	go test -v github.com/wilhelmguo/influx-proxy/backend

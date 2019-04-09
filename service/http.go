@@ -74,11 +74,11 @@ func (hs *HttpService) HandlerQuery(w http.ResponseWriter, req *http.Request) {
 	q := strings.TrimSpace(req.FormValue("q"))
 	err := hs.ic.Query(w, req)
 	if err != nil {
-		logs.Errorf("query error: %s,the query is %s,the client is %s\n", err, q, req.RemoteAddr)
+		logs.Infof("query error: %v,the query is %v,the client is %s ", err, req.Form, req.RemoteAddr)
 		return
 	}
 	if hs.ic.QueryTracing != 0 {
-		logs.Errorf("the query is %s,the client is %s\n", q, req.RemoteAddr)
+		logs.Infof("the query is %s,the client is %s ", q, req.RemoteAddr)
 	}
 
 	return

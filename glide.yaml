@@ -1,14 +1,11 @@
 package: github.com/wilhelmguo/influx-proxy
 import:
-  - package: github.com/influxdata/influxdb
-    version: ~1.6.4
-    subpackages:
-      - client/v2
-  - package: gopkg.in/natefinch/lumberjack.v2
-    version: ~2.1.0
-  - package: github.com/sirupsen/logrus
-    version: ~v1.4.1
-  - package: github.com/evalphobia/logrus_sentry
-    version: ~v0.8.2
-  - package: github.com/getsentry/raven-go
-    version: master
+- package: github.com/evalphobia/logrus_sentry
+  version: ~0.8.2
+- package: github.com/influxdata/influxdb
+  version: ~1.6.4
+  subpackages:
+  - client/v2
+  - models
+- package: github.com/sirupsen/logrus
+  version: ~1.4.1

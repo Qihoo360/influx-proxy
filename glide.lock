@@ -1,5 +1,5 @@
-hash: d1a644c3ae3e7f6104faf52622e41a12ed0cd87fd05d16405bee1320eb836786
-updated: 2019-04-04T18:10:08.439355376+08:00
+hash: 87bb2c52f7463d4ecd82435464d42b03dbcb56a620fe586c8de4fbb45f9c1302
+updated: 2019-04-08T16:15:32.256663+08:00
 imports:
 - name: github.com/certifi/gocertifi
   version: a4ab0227d360091084658029ec8ae45f989fba3e
@@ -21,6 +21,4 @@ imports:
   version: 8bdbc7bcc01dcbb8ec23dc8a28e332258d25251f
 - name: golang.org/x/sys/unix
   version: 81d4e9dc473e5e8c933f2aaeba2a3d81efb9aed2
-- name: gopkg.in/natefinch/lumberjack.v2
-  version: a96e63847dc3c67d17befa69c303767e2f84e54f
 testImports: []
