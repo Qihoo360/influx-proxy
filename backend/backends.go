@@ -57,6 +57,10 @@ func NewBackends(cfg *BackendConfig, name string, storedir string) (bs *Backends
 	return
 }
 
+func (bs *Backends) GetDB() (db string) {
+	return bs.DB
+}
+
 // worker 新建Backends对象时，启动作为守护协程
 func (bs *Backends) worker() {
 	for bs.running {

@@ -408,6 +408,28 @@ func (ic *InfluxCluster) Query(w http.ResponseWriter, req *http.Request) (err er
 		return
 	}
 
+	// deal with global query, e.g. create database
+	if ic.GlobalQuery(q) {
+		var db string
+		db, err = GetDBFromInfluxQL(q)
+		if err != nil {
+			w.WriteHeader(400)
+			w.Write([]byte("query error\n"))
+			atomic.AddInt64(&ic.stats.QueryRequestsFail, 1)
+			return
+		}
+		for _, bs := range ic.backends {
+			if bs.GetDB() == db {
+				err := bs.Query(w, req)
+				if err != nil {
+					logs.Errorf("GlobalQuery (%s) return error.%v", q, err)
+				}
+			}
+
+		}
+		return
+	}
+
 	err = ic.CheckQuery(q)
 	if err != nil {
 		w.WriteHeader(400)
@@ -717,4 +739,13 @@ func (ic *InfluxCluster) ShowQuery(w http.ResponseWriter, req *http.Request) (er
 	w.Write(GzipEncode(fBody, fHeader.Get("Content-Encoding") == "gzip"))
 	err = nil
 	return
+}
+
+func (ic *InfluxCluster) GlobalQuery(q string) bool {
+	// better way??
+	matched, err := regexp.MatchString(GlobalCmds, q)
+	if err != nil {
+		return false
+	}
+	return matched
 }

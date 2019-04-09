@@ -8,4 +8,5 @@ var (
 	ForbidCmds   = "(?i:^\\s*grant|^\\s*revoke|\\(\\)\\$)"
 	SupportCmds  = "(?i:from|drop\\s*measurement)"
 	ExecutorCmds = "(?i:show\\s*measurements|show\\s*tag\\s*keys|show\\s*series|show\\s*field\\s*keys)"
+	GlobalCmds   = "(?i:create database\\s)"
 )

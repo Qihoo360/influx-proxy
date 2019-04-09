@@ -137,6 +137,28 @@ func GetMeasurementFromInfluxQL(q string) (m string, err error) {
 	return "", ErrIllegalQL
 }
 
+func GetDBFromInfluxQL(q string) (m string, err error) {
+	buf := bytes.NewBuffer([]byte(q))
+	scanner := bufio.NewScanner(buf)
+	scanner.Buffer([]byte(q), len(q))
+	scanner.Split(ScanToken)
+	var tokens []string
+	for scanner.Scan() {
+		tokens = append(tokens, scanner.Text())
+	}
+
+	for i := 0; i < len(tokens); i++ {
+		if strings.ToLower(tokens[i]) == "database" {
+			if i+1 < len(tokens) {
+				m = getMeasurement(tokens[i+1:])
+				return
+			}
+		}
+	}
+
+	return "", ErrIllegalQL
+}
+
 func getMeasurement(tokens []string) (m string) {
 	if len(tokens) >= 2 && strings.HasPrefix(tokens[1], ".") {
 		m = tokens[1]
