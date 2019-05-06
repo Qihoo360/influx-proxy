@@ -1,12 +1,12 @@
 {
     "BACKENDS": {
-        "influxdb-1": {
-            "url": "http://10.174.92.63:8086",
+        "influxdb-k8s-0": {
+            "url": "http://influxdb-k8s-0.influxdb-k8s:8086",
             "db": "k8s",
             "zone": "local",
             "basicauth": {
                 "username": "admin",
-                "password": "a1b2c3d4e"
+                "password": "***"
             },
             "interval": 1000,
             "timeout": 60000,
@@ -15,12 +15,27 @@
             "checkinterval": 1000,
             "rewriteinterval": 10000
         },
-        "influxdb-2": {
-            "url": "http://10.174.65.95:8086",
+        "influxdb-k8s-1": {
+            "url": "http://influxdb-k8s-1.influxdb-k8s:8086",
+            "db": "k8s",
+            "zone": "local",
+            "basicauth": {
+                "username": "admin",
+                "password": "***"
+            },
+            "interval": 1000,
+            "timeout": 60000,
+            "timeoutquery": 600000,
+            "maxrowlimit": 10000,
+            "checkinterval": 1000,
+            "rewriteinterval": 10000
+        },
+        "influxdb-heapster-0": {
+            "url": "http://influxdb-heapster-0.influxdb-heapster:8086",
             "db": "heapster",
             "basicauth": {
                 "username": "admin",
-                "password": "a1b2c3d4e"
+                "password": "***"
             },
             "zone": "local",
             "interval": 1000,
@@ -33,23 +48,22 @@
     },
     "KEYMAPS": {
         "k8s": {
-            "cpu": ["influxdb-1"],
-            "mem": ["influxdb-2"],
-            "_default_": ["influxdb-1"]
+            "conntrack": ["influxdb-k8s-0"],
+            "cpu": ["influxdb-k8s-0"],
+            "mem": ["influxdb-k8s-1"],
+            "system": ["influxdb-k8s-1"],
+            "_default_": ["influxdb-k8s-0"]
         },
         "heapster": {
-            "cpu": ["influxdb-1"],
-            "mem": ["influxdb-2"],
-            "_default_": ["influxdb-1"]
+            "_default_": ["influxdb-heapster-0"]
         },
         "influxproxy": {
-            "_default_": ["influxdb-1"]
+            "_default_": ["influxdb-k8s-0"]
         }
     },
     "NODES": {
         "l1": {
             "listenaddr": ":7076",
-            "db": "test",
             "zone": "local",
             "interval": 10,
             "idletimeout": 10,
