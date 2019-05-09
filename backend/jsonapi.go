@@ -12,9 +12,9 @@ import (
 */
 
 type seri struct {
-	Name    string     `json:"name,omitempty"`
-	Columns []string   `json:"columns"`
-	Values  [][]string `json:"values"`
+	Name    string          `json:"name,omitempty"`
+	Columns []string        `json:"columns"`
+	Values  [][]interface{} `json:"values"`
 }
 
 type statement struct {
@@ -39,42 +39,22 @@ func GetSeriesArray(sBody []byte) (ss []seri, err error) {
 }
 
 // GetValuesArray byte转化为[][]string
-func GetValuesArray(sBody []byte) (ms [][]string, err error) {
-	var tmp statementArray
-	err = json.Unmarshal(sBody, &tmp)
-	if err == nil {
-		if len(tmp.Results) > 0 && len(tmp.Results[0].Series) > 0 {
-			ms = tmp.Results[0].Series[0].Values
-		}
-	}
-	return
-}
+//func GetValuesArray(sBody []byte) (ms [][]string, err error) {
+//	var tmp statementArray
+//	err = json.Unmarshal(sBody, &tmp)
+//	if err == nil {
+//		if len(tmp.Results) > 0 && len(tmp.Results[0].Series) > 0 {
+//			ms = tmp.Results[0].Series[0].Values
+//		}
+//	}
+//	return
+//}
 
 // GetJsonBodyfromSeries seri转化为byte
 func GetJsonBodyfromSeries(series []seri) (body []byte, err error) {
 	tmpstatement := statement{
 		StatementId: 0,
 		Series:      series,
-	}
-	body, err = json.Marshal(statementArray{
-		Results: []statement{tmpstatement},
-	})
-	if err == nil {
-		body = append(body, '\n')
-	}
-	return
-}
-
-// GetJsonBodyfromValues [][]string转化为byte
-func GetJsonBodyfromValues(name string, columns []string, values [][]string) (body []byte, err error) {
-	tmpseri := seri{
-		Name:    name,
-		Columns: columns,
-		Values:  values,
-	}
-	tmpstatement := statement{
-		StatementId: 0,
-		Series:      []seri{tmpseri},
 	}
 	body, err = json.Marshal(statementArray{
 		Results: []statement{tmpstatement},

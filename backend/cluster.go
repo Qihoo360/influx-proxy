@@ -659,7 +659,7 @@ func (ic *InfluxCluster) QueryAll(req *http.Request) (sHeader http.Header, bodys
 }
 
 func (ic *InfluxCluster) showMeasurements(bodys [][]byte) (fBody []byte, err error) {
-	measureMap := make(map[string]seri)
+	measureMap := make(map[interface{}]seri)
 	for _, body := range bodys {
 		sSs, Err := GetSeriesArray(body)
 		if Err != nil {
@@ -667,18 +667,21 @@ func (ic *InfluxCluster) showMeasurements(bodys [][]byte) (fBody []byte, err err
 			return
 		}
 		for _, s := range sSs {
-			for _, measurement := range s.Values {
-				if strings.Contains(measurement[0], "influxdb.cluster") {
-					continue
+			for _, value := range s.Values {
+				valueString, ok := value[0].(string)
+				if ok {
+					if strings.Contains(valueString, "influxdb.cluster") {
+						continue
+					}
 				}
-				measureMap[measurement[0]] = s
+				measureMap[value[0]] = s
 			}
 		}
 	}
 	var serie seri
-	var measures [][]string
+	var measures [][]interface{}
 	for measure, s := range measureMap {
-		measures = append(measures, []string{measure})
+		measures = append(measures, []interface{}{measure})
 		serie = s
 	}
 	serie.Values = measures
@@ -721,12 +724,18 @@ func (ic *InfluxCluster) ShowQuery(w http.ResponseWriter, req *http.Request) (er
 	}
 	var fBody []byte
 	q := strings.TrimSpace(req.FormValue("q"))
-	if strings.Contains(q, "field") || strings.Contains(q, "tag") {
+	if strings.Contains(strings.ToLower(q), "field") || strings.Contains(strings.ToLower(q), "tag") {
 		fBody, Err = ic.showTagFieldkey(bodys)
 		if Err != nil {
 			err = Err
 			return
 		}
+	} else if strings.Contains(strings.ToLower(q), "retention") {
+		copyHeader(w.Header(), fHeader)
+		w.WriteHeader(200)
+		// TODO 直接返回第一个数据库的保留策略, 有待改进
+		w.Write(GzipEncode(bodys[0], fHeader.Get("Content-Encoding") == "gzip"))
+		return
 	} else {
 		fBody, Err = ic.showMeasurements(bodys)
 		if Err != nil {
